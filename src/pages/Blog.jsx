@@ -4,7 +4,7 @@ import TextReveal from '../components/TextReveal'
 
 const articles = [
   { title: '5 Signs Your Business Needs an AI Agent', category: 'AI for Business', date: 'May 2026', excerpt: 'When repetitive work slows you down, an AI agent might be the faster solution.', gradient: 'from-[#1a3a2a] to-[#0f2415]' },
-  { title: 'Why Your "Spreadsheet Business" Is Costing You Growth', category: 'Platforms', date: 'May 2026', excerpt: 'Custom dashboards aren't just for big companies. Here's why SMBs need them now.', gradient: 'from-[#1a2a3a] to-[#0f1a24]' },
+  { title: "Why Your 'Spreadsheet Business' Is Costing You Growth", category: 'Platforms', date: 'May 2026', excerpt: "Custom dashboards aren't just for big companies. Here's why SMBs need them now.", gradient: 'from-[#1a2a3a] to-[#0f1a24]' },
   { title: 'Brand System vs. Logo: What Actually Moves the Needle', category: 'Branding', date: 'April 2026', excerpt: 'A logo is nice. A brand system is what turns visitors into believers.', gradient: 'from-[#3a1a3a] to-[#240f24]' },
   { title: 'How We Built greenfunding in 8 Weeks', category: 'Case Study', date: 'March 2026', excerpt: 'The full story behind the brand, platform, and AI integration for a green-tech funding startup.', gradient: 'from-[#1a2e1a] to-[#0f1f0f]' },
   { title: 'The Future of Web3 Branding', category: 'Web3', date: 'March 2026', excerpt: 'Why decentralised brands need different thinking — and how to get it right.', gradient: 'from-[#2a1a3a] to-[#1a0f24]' },
