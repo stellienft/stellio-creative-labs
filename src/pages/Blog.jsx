@@ -8,7 +8,7 @@ const articles = [
   { title: 'Brand System vs. Logo: What Actually Moves the Needle', category: 'Branding', date: 'April 2026', excerpt: 'A logo is nice. A brand system is what turns visitors into believers.', gradient: 'from-[#3a1a3a] to-[#240f24]' },
   { title: 'How We Built greenfunding in 8 Weeks', category: 'Case Study', date: 'March 2026', excerpt: 'The full story behind the brand, platform, and AI integration for a green-tech funding startup.', gradient: 'from-[#1a2e1a] to-[#0f1f0f]' },
   { title: 'The Future of Web3 Branding', category: 'Web3', date: 'March 2026', excerpt: 'Why decentralised brands need different thinking — and how to get it right.', gradient: 'from-[#2a1a3a] to-[#1a0f24]' },
-  { title: 'From Idea to MVP: A Founder's Guide', category: 'Startups', date: 'February 2026', excerpt: 'How to validate, build, and launch your product without wasting months.', gradient: 'from-[#3a2e1a] to-[#2a1f0f]' },
+  { title: "From Idea to MVP: A Founder's Guide", category: 'Startups', date: 'February 2026', excerpt: 'How to validate, build, and launch your product without wasting months.', gradient: 'from-[#3a2e1a] to-[#2a1f0f]' },
 ]
 
 export default function Blog() {

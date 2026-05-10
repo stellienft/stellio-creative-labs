@@ -75,7 +75,7 @@ export default function Navbar() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <Link
-              to="/contact"
+              to="/ai-audit"
               className="text-[0.78rem] font-600 text-[#FAFAFA] px-4 py-2 rounded-lg border border-white/[0.12] hover:border-[#FF6B2C] hover:text-[#FF6B2C] transition-all duration-300"
             >
               AI Audit
@@ -175,7 +175,7 @@ export default function Navbar() {
               </div>
               <div className="p-4 border-t border-white/[0.06] flex flex-col gap-3">
                 <Link
-                  to="/contact"
+                  to="/ai-audit"
                   onClick={() => setMenuOpen(false)}
                   className="w-full text-center text-[0.85rem] font-600 text-[#FAFAFA] px-4 py-3 rounded-lg border border-white/[0.12] hover:border-[#FF6B2C] transition-all"
                 >

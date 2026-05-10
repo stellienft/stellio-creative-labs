@@ -9,6 +9,7 @@ import Work from './pages/Work'
 import Pricing from './pages/Pricing'
 import Contact from './pages/Contact'
 import Blog from './pages/Blog'
+import AIAudit from './pages/AIAudit'
 
 const SmoothScrollContext = createContext(null)
 export const useSmoothScroll = () => useContext(SmoothScrollContext)
@@ -67,6 +68,7 @@ function App() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/ai-audit" element={<AIAudit />} />
         </Routes>
         <Footer />
       </div>

@@ -69,6 +69,7 @@ export default function Footer() {
                 { label: 'Pricing', href: '/pricing' },
                 { label: 'About', href: '/about' },
                 { label: 'Blog', href: '/blog' },
+                { label: 'AI Audit', href: '/ai-audit' },
                 { label: 'Contact', href: '/contact' },
               ].map((l) => (
                 <Link
