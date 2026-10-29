@@ -53,7 +53,7 @@ const projects = [
     desc: 'Custom platform built for installers to generate proposals for clients. Advanced automation, API connections, Supabase and AI analytics.',
     metrics: ['40% less admin', '3x engagement'],
     gradient: 'from-[#1a2e1a] to-[#0f1f0f]',
-    image: '/work/greenfunding.png',
+    image: '/work/logo-greenfunding.png',
   },
   {
     name: 'PropCheck',
@@ -61,7 +61,7 @@ const projects = [
     desc: 'Brand, custom dashboard, automated reporting, CRM sync.',
     metrics: ['60% less reporting', '2.5x satisfaction'],
     gradient: 'from-[#1a1a2e] to-[#0f0f1f]',
-    image: '/work/propcheck.png',
+    image: '/work/logo-propcheck.png',
   },
   {
     name: 'Queensland Carrying',
@@ -69,7 +69,7 @@ const projects = [
     desc: 'Custom branding and website build. Custom job request form with advanced automation and AI integration. Custom pricing and distance tooling.',
     metrics: ['200% more jobs', '80% less admin'],
     gradient: 'from-[#2e1a1a] to-[#1f0f0f]',
-    image: '/work/qldcarrying.png',
+    image: '/work/logo-qldcarrying.png',
   },
   {
     name: 'Southside Catering',
@@ -77,7 +77,7 @@ const projects = [
     desc: 'Landing page redesign, brand refresh. Modern e-commerce experience with a fresh visual identity.',
     metrics: ['Brand refresh', 'Redesigned UX'],
     gradient: 'from-[#2e1a2e] to-[#1f0f1f]',
-    image: '/work/southside.png',
+    image: '/work/logo-southside.png',
   },
 ]
 
@@ -279,13 +279,11 @@ export default function Home() {
                   whileHover={{ y: -4 }}
                   className="group bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.12] transition-all duration-500"
                 >
-                  <div className="h-[200px] relative overflow-hidden bg-[#0E0E0E]">
-                    {p.image ? (
-                      <img src={p.image} alt={p.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
-                    ) : (
-                      <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient}`} />
+                  <div className="h-[180px] relative overflow-hidden bg-[#0E0E0E] flex items-center justify-center p-10">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient} opacity-60`} />
+                    {p.image && (
+                      <img src={p.image} alt={p.name} loading="lazy" className="relative max-h-full max-w-[75%] object-contain group-hover:scale-[1.05] transition-transform duration-500" />
                     )}
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors duration-500" />
                   </div>
                   <div className="p-6">
                     <h3 className="font-[Satoshi] text-[1.1rem] font-600 mb-1">{p.name}</h3>
@@ -357,6 +355,76 @@ export default function Home() {
                     className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#71717A] hover:text-[#FAFAFA] transition-colors"
                   >
                     Source on GitHub
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+                  </a>
+                </div>
+              </motion.div>
+            </AnimatedSection>
+
+            {/* Bijou Agent */}
+            <AnimatedSection delay={0.05}>
+              <motion.div
+                whileHover={{ y: -4 }}
+                className="group bg-[#111111] border border-white/[0.06] rounded-2xl p-7 hover:border-white/[0.12] transition-all duration-500 h-full flex flex-col"
+              >
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <img
+                    src="/apps/bijou.png"
+                    alt="Bijou Agent app icon"
+                    className="w-14 h-14 rounded-xl shadow-lg"
+                  />
+                  <span className="text-[0.68rem] font-600 uppercase tracking-wider text-[#71717A] bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded-md">
+                    AI Agent Platform
+                  </span>
+                </div>
+                <h3 className="font-[Satoshi] text-[1.05rem] font-700 mb-1.5">Bijou Agent</h3>
+                <p className="text-[0.78rem] text-[#FB5005] mb-3">Build your own agent team</p>
+                <p className="text-[0.86rem] text-[#A1A1AA] leading-relaxed mb-5 flex-1">
+                  Build your own team of AI agents. Give each one a name, a colour and a job: they research, write, plan and get things done, on your phone or computer.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
+                  <a
+                    href="https://bijouagent.xyz"
+                    target="_blank"
+                    rel="noopener"
+                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#FB5005] hover:text-[#E55A1F] transition-colors"
+                  >
+                    Visit Bijou Agent
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+                  </a>
+                </div>
+              </motion.div>
+            </AnimatedSection>
+
+            {/* Ares Fitness */}
+            <AnimatedSection delay={0.1}>
+              <motion.div
+                whileHover={{ y: -4 }}
+                className="group bg-[#111111] border border-white/[0.06] rounded-2xl p-7 hover:border-white/[0.12] transition-all duration-500 h-full flex flex-col"
+              >
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <img
+                    src="/apps/ares.png"
+                    alt="Ares Fitness app icon"
+                    className="w-14 h-14 rounded-xl shadow-lg"
+                  />
+                  <span className="text-[0.68rem] font-600 uppercase tracking-wider text-[#71717A] bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded-md">
+                    AI Fitness App
+                  </span>
+                </div>
+                <h3 className="font-[Satoshi] text-[1.05rem] font-700 mb-1.5">Ares Fitness</h3>
+                <p className="text-[0.78rem] text-[#FB5005] mb-3">AI strength coach for iPhone</p>
+                <p className="text-[0.86rem] text-[#A1A1AA] leading-relaxed mb-5 flex-1">
+                  Adaptive training programs, set-by-set logging, AI coaching, meal plans and progress tracking. Built end to end for iPhone. Coming soon to iOS.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
+                  <a
+                    href="https://aresfitness.xyz"
+                    target="_blank"
+                    rel="noopener"
+                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#FB5005] hover:text-[#E55A1F] transition-colors"
+                  >
+                    Visit aresfitness.xyz
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
                   </a>
                 </div>
