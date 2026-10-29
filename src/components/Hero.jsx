@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import LogoCarousel from './LogoCarousel'
 
 export default function Hero() {
   const containerRef = useRef(null)
@@ -39,7 +40,7 @@ export default function Hero() {
     <>
       {/* Custom cursor follower (desktop only) */}
       <motion.div
-        className="fixed w-5 h-5 rounded-full border border-[#FF6B2C]/50 pointer-events-none z-[9998] hidden lg:block"
+        className="fixed w-5 h-5 rounded-full border border-[#FB5005]/50 pointer-events-none z-[9998] hidden lg:block"
         animate={{ x: cursorPos.x - 10, y: cursorPos.y - 10 }}
         transition={{ type: 'spring', stiffness: 500, damping: 28, mass: 0.5 }}
       />
@@ -55,11 +56,11 @@ export default function Hero() {
         {/* Floating gradient orbs */}
         <motion.div
           style={{ x: mouseX, y: mouseY }}
-          className="absolute top-[15%] right-[10%] w-[400px] h-[400px] rounded-full bg-[#FF6B2C]/[0.04] blur-[120px] pointer-events-none"
+          className="absolute top-[15%] right-[10%] w-[400px] h-[400px] rounded-full bg-[#FB5005]/[0.04] blur-[120px] pointer-events-none"
         />
         <motion.div
           style={{ x: useTransform(mouseX, v => -v * 0.5), y: useTransform(mouseY, v => -v * 0.5) }}
-          className="absolute bottom-[10%] left-[5%] w-[300px] h-[300px] rounded-full bg-[#FF6B2C]/[0.03] blur-[100px] pointer-events-none"
+          className="absolute bottom-[10%] left-[5%] w-[300px] h-[300px] rounded-full bg-[#FB5005]/[0.03] blur-[100px] pointer-events-none"
         />
 
         <div className="max-w-[1200px] mx-auto px-6 w-full">
@@ -71,9 +72,9 @@ export default function Hero() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                className="inline-flex items-center gap-2.5 text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.12em] mb-8"
+                className="inline-flex items-center gap-2.5 text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.12em] mb-8"
               >
-                <span className="w-2 h-2 rounded-full bg-[#FF6B2C] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[#FB5005] animate-pulse" />
                 Powered by Arclink AI
               </motion.div>
 
@@ -106,9 +107,9 @@ export default function Hero() {
                 transition={{ duration: 0.9, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
                 className="text-[1.05rem] text-[#A1A1AA] leading-relaxed max-w-[480px] mb-10"
               >
-                I'm Stellio — designer, developer, and founder. I build the brands, websites, and
+                I'm Stellio. Designer, developer, and founder. I build the brands, websites, and
                 AI-powered platforms that run modern businesses. From first impression to last
-                automation — one partner, end-to-end.
+                automation. One partner, end to end.
               </motion.p>
 
               {/* CTAs */}
@@ -120,18 +121,18 @@ export default function Hero() {
               >
                 <Link
                   to="/contact"
-                  className="group relative inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FF6B2C] text-white text-[0.85rem] font-600 overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,107,44,0.3)]"
+                  className="group relative inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FB5005] text-white text-[0.85rem] font-600 overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(251,80,5,0.3)]"
                 >
                   <span className="relative z-10">Start Your Project</span>
                   <svg className="relative z-10 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B2C] via-[#FF9E6B] to-[#FF6B2C] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-[#E55A1F] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </Link>
-                <Link
-                  to="/contact"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.12] text-[#FAFAFA] text-[0.85rem] font-600 hover:border-[#FF6B2C] hover:text-[#FF6B2C] transition-all duration-300"
+                <a
+                  href="#claude-workshop"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.12] text-[#FAFAFA] text-[0.85rem] font-600 hover:border-[#FB5005] hover:text-[#FB5005] transition-all duration-300"
                 >
-                  Get Free AI Audit
-                </Link>
+                  Claude Workshop
+                </a>
               </motion.div>
             </div>
 
@@ -159,19 +160,19 @@ export default function Hero() {
 
                 {/* Mockup content */}
                 <div className="space-y-3">
-                  <div className="h-2 rounded-full bg-[#FF6B2C]/20 w-[30%]" />
+                  <div className="h-2 rounded-full bg-[#FB5005]/20 w-[30%]" />
                   <div className="h-2 rounded-full bg-white/[0.06] w-[55%]" />
                   <div className="h-2 rounded-full bg-white/[0.06] w-full mt-4" />
                   <div className="h-2 rounded-full bg-white/[0.06] w-[70%]" />
                   <div className="h-2 rounded-full bg-white/[0.06] w-[45%]" />
-                  <div className="inline-flex items-center gap-2 mt-4 px-3 py-2 rounded-lg bg-[#FF6B2C]/10 border border-[#FF6B2C]/20">
-                    <span className="w-2 h-2 rounded-full bg-[#FF6B2C] animate-pulse" />
-                    <span className="text-[0.78rem] font-600 text-[#FF6B2C]">AI Agent Online — 3 Active</span>
+                  <div className="inline-flex items-center gap-2 mt-4 px-3 py-2 rounded-lg bg-[#FB5005]/10 border border-[#FB5005]/20">
+                    <span className="w-2 h-2 rounded-full bg-[#FB5005] animate-pulse" />
+                    <span className="text-[0.78rem] font-600 text-[#FB5005]">AI Agent Online. 3 Active</span>
                   </div>
                 </div>
 
                 {/* Glow effect */}
-                <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-[#FF6B2C]/5 to-transparent pointer-events-none" />
+                <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-[#FB5005]/5 to-transparent pointer-events-none" />
               </motion.div>
 
               {/* Floating cards */}
@@ -182,7 +183,7 @@ export default function Hero() {
                 className="absolute -top-4 -right-4 bg-[#0E0E0E] border border-white/[0.08] rounded-xl px-4 py-3 shadow-xl"
               >
                 <div className="flex items-center gap-2 text-[0.8rem] text-[#A1A1AA]">
-                  <svg className="w-4 h-4 text-[#FF6B2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  <svg className="w-4 h-4 text-[#FB5005]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                   Live in 30 days
                 </div>
               </motion.div>
@@ -191,10 +192,10 @@ export default function Hero() {
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 1.15, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute bottom-8 -left-6 bg-[#0E0E0E] border border-white/[0.08] rounded-xl px-4 py-3 shadow-xl"
+                className="absolute top-20 -right-4 bg-[#0E0E0E] border border-white/[0.08] rounded-xl px-4 py-3 shadow-xl"
               >
                 <div className="flex items-center gap-2 text-[0.8rem] text-[#A1A1AA]">
-                  <svg className="w-4 h-4 text-[#FF6B2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                  <svg className="w-4 h-4 text-[#FB5005]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                   70+ 5-star reviews
                 </div>
               </motion.div>
@@ -203,10 +204,10 @@ export default function Hero() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 1.3, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute -bottom-2 right-8 bg-[#0E0E0E] border border-white/[0.08] rounded-xl px-4 py-3 shadow-xl"
+                className="absolute bottom-4 right-4 bg-[#0E0E0E] border border-white/[0.08] rounded-xl px-4 py-3 shadow-xl"
               >
                 <div className="flex items-center gap-2 text-[0.8rem] text-[#A1A1AA]">
-                  <svg className="w-4 h-4 text-[#FF6B2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg>
+                  <svg className="w-4 h-4 text-[#FB5005]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg>
                   No lock-in contracts
                 </div>
               </motion.div>
@@ -214,27 +215,7 @@ export default function Hero() {
           </div>
 
           {/* Trust bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-20 pt-12 border-t border-white/[0.06]"
-          >
-            <p className="text-[0.72rem] text-[#71717A] uppercase tracking-[0.12em] mb-6 text-center">
-              Trusted by ambitious teams
-            </p>
-            <div className="flex flex-wrap justify-center gap-x-10 gap-y-4 opacity-40">
-              {['greenfunding', 'PropCheck', 'HauOS', 'BLNDL', 'Remotely', 'ARBISAN'].map((name) => (
-                <motion.span
-                  key={name}
-                  whileHover={{ opacity: 0.9, scale: 1.05 }}
-                  className="text-[0.95rem] font-600 tracking-tight text-[#FAFAFA] cursor-default transition-all"
-                >
-                  {name}
-                </motion.span>
-              ))}
-            </div>
-          </motion.div>
+          <LogoCarousel />
         </div>
       </motion.section>
     </>

@@ -1,19 +1,38 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '../lib/supabase'
 
-const navLinks = [
+const defaultNavLinks = [
+  { label: 'Home', href: '/' },
   { label: 'Work', href: '/work' },
-  { label: 'Services', href: '/#services' },
-  { label: 'Pricing', href: '/pricing' },
+  { label: 'Services', href: '/services' },
+  { label: 'Free Audit', href: '/site-audit' },
   { label: 'About', href: '/about' },
   { label: 'Blog', href: '/blog' },
+  { label: 'FAQ', href: '/faq' },
 ]
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [navLinks, setNavLinks] = useState(defaultNavLinks)
   const location = useLocation()
+
+  // Fetch menu from DB (menu_items table). Falls back to defaults if empty.
+  useEffect(() => {
+    supabase.from('menu_items').select('label, href, ordering, is_external')
+      .order('ordering', { ascending: false })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setNavLinks(data.map(item => ({
+            label: item.label,
+            href: item.href,
+            external: item.is_external,
+          })))
+        }
+      })
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -48,27 +67,35 @@ export default function Navbar() {
             to="/"
             className="relative group"
           >
-            <span className="font-[Satoshi] text-[1.25rem] font-800 tracking-tight text-[#FAFAFA] group-hover:text-[#FF6B2C] transition-colors duration-300">
-              STELLIO
-            </span>
-            <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-[#FF6B2C] group-hover:w-full transition-all duration-500 ease-out" />
+            <img
+              src="/logo.png"
+              alt="Stellio"
+              className="h-9 w-auto block"
+            />
           </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                to={link.href}
-                className={`relative text-[0.8rem] font-500 uppercase tracking-[0.08em] transition-colors duration-300 group ${
-                  isActive(link.href) ? 'text-[#FAFAFA]' : 'text-[#A1A1AA] hover:text-[#FAFAFA]'
-                }`}
-              >
-                {link.label}
-                <span className={`absolute -bottom-1 left-0 h-[1px] bg-[#FF6B2C] transition-all duration-400 ease-out ${
-                  isActive(link.href) ? 'w-full' : 'w-0 group-hover:w-full'
-                }`} />
-              </Link>
+              link.external ? (
+                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
+                  className="relative text-[0.8rem] font-500 uppercase tracking-[0.08em] transition-colors duration-300 text-[#A1A1AA] hover:text-[#FAFAFA]">
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  className={`relative text-[0.8rem] font-500 uppercase tracking-[0.08em] transition-colors duration-300 group ${
+                    isActive(link.href) ? 'text-[#FAFAFA]' : 'text-[#A1A1AA] hover:text-[#FAFAFA]'
+                  }`}
+                >
+                  {link.label}
+                  <span className={`absolute -bottom-1 left-0 h-[1px] bg-[#FB5005] transition-all duration-400 ease-out ${
+                    isActive(link.href) ? 'w-full' : 'w-0 group-hover:w-full'
+                  }`} />
+                </Link>
+              )
             ))}
           </div>
 
@@ -76,13 +103,13 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <Link
               to="/ai-audit"
-              className="text-[0.78rem] font-600 text-[#FAFAFA] px-4 py-2 rounded-lg border border-white/[0.12] hover:border-[#FF6B2C] hover:text-[#FF6B2C] transition-all duration-300"
+              className="text-[0.78rem] font-600 text-[#FAFAFA] px-4 py-2 rounded-lg border border-white/[0.12] hover:border-[#FB5005] hover:text-[#FB5005] transition-all duration-300"
             >
               AI Audit
             </Link>
             <Link
               to="/contact"
-              className="text-[0.78rem] font-600 text-white px-5 py-2 rounded-lg bg-[#FF6B2C] hover:bg-[#E55A1F] transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,107,44,0.3)]"
+              className="text-[0.78rem] font-600 text-white px-5 py-2 rounded-lg bg-[#FB5005] hover:bg-[#E55A1F] transition-all duration-300 hover:shadow-[0_0_20px_rgba(251,80,5,0.3)]"
             >
               Book a Call
             </Link>
@@ -177,14 +204,14 @@ export default function Navbar() {
                 <Link
                   to="/ai-audit"
                   onClick={() => setMenuOpen(false)}
-                  className="w-full text-center text-[0.85rem] font-600 text-[#FAFAFA] px-4 py-3 rounded-lg border border-white/[0.12] hover:border-[#FF6B2C] transition-all"
+                  className="w-full text-center text-[0.85rem] font-600 text-[#FAFAFA] px-4 py-3 rounded-lg border border-white/[0.12] hover:border-[#FB5005] transition-all"
                 >
                   Free AI Audit
                 </Link>
                 <Link
                   to="/contact"
                   onClick={() => setMenuOpen(false)}
-                  className="w-full text-center text-[0.85rem] font-600 text-white px-4 py-3 rounded-lg bg-[#FF6B2C] hover:bg-[#E55A1F] transition-all"
+                  className="w-full text-center text-[0.85rem] font-600 text-white px-4 py-3 rounded-lg bg-[#FB5005] hover:bg-[#E55A1F] transition-all"
                 >
                   Book a Call
                 </Link>

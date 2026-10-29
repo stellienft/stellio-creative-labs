@@ -1,13 +1,16 @@
 import React, { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '../lib/supabase'
+import { sendNotificationEmail } from '../lib/email'
 import AnimatedSection from '../components/AnimatedSection'
+import { WebPageSchema, BreadcrumbSchema } from '../components/JsonLd'
 import TextReveal from '../components/TextReveal'
 import { promptCategories, skillsList, testimonials, demoSteps } from '../data/prompts'
 
 function SkillBadge({ name }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[0.72rem] font-500 text-[#FF6B2C] bg-[#FF6B2C]/[0.08] px-2.5 py-1 rounded-md border border-[#FF6B2C]/[0.12]">
+    <span className="inline-flex items-center gap-1.5 text-[0.72rem] font-500 text-[#FB5005] bg-[#FB5005]/[0.08] px-2.5 py-1 rounded-md border border-[#FB5005]/[0.12]">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12"/>
       </svg>
@@ -29,7 +32,7 @@ function TelegramBubble({ type, text, delay = 0 }) {
       <div
         className={`max-w-[85%] sm:max-w-[70%] px-4 py-3 rounded-2xl text-[0.88rem] leading-relaxed ${
           isUser
-            ? 'bg-[#FF6B2C] text-white rounded-br-md'
+            ? 'bg-[#FB5005] text-white rounded-br-md'
             : 'bg-[#1A1A1A] text-[#A1A1AA] border border-white/[0.06] rounded-bl-md'
         }`}
       >
@@ -37,7 +40,7 @@ function TelegramBubble({ type, text, delay = 0 }) {
           text
         ) : (
           <>
-            <span className="text-[#FF6B2C] font-600 text-[0.75rem] uppercase tracking-wider block mb-1.5">Raven</span>
+            <span className="text-[#FB5005] font-600 text-[0.75rem] uppercase tracking-wider block mb-1.5">Raven</span>
             {text}
           </>
         )}
@@ -53,9 +56,37 @@ export default function AIAudit() {
   const [showAllPrompts, setShowAllPrompts] = useState(false)
   const formRef = useRef(null)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (email) setSubmitted(true)
+    if (!email) return
+
+    // Save to submissions
+    supabase.from('submissions').insert({
+      name: 'AI Audit Lead',
+      email: email,
+      company: null,
+      service: 'AI Audit',
+      message: 'Downloaded the AI Prompt Playbook',
+      status: 'new',
+    }).then(() => {}).catch(() => {})
+
+    // Send email notification
+    sendNotificationEmail({
+      to: 'hello@stellio.com.au',
+      subject: `AI Audit lead: ${email}`,
+      htmlBody: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#0A0A0A;border-radius:16px;overflow:hidden;">
+        <div style="background:#FB5005;padding:24px 32px;"><h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">AI Audit Lead</h1></div>
+        <div style="padding:32px;color:#FAFAFA;">
+          <p style="font-size:15px;">Someone just entered their email on the AI Audit page:</p>
+          <p style="font-size:18px;"><a href="mailto:${email}" style="color:#FB5005;text-decoration:none;">${email}</a></p>
+          <p style="color:#71717A;font-size:13px;margin-top:24px;">They downloaded the Raven Prompt Playbook.</p>
+        </div>
+        <div style="padding:16px 32px;background:#0E0E0E;border-top:1px solid rgba(255,255,255,0.06);">
+          <p style="margin:0;font-size:12px;color:#71717A;">View in <a href="${window.location.origin}/admin" style="color:#FB5005;text-decoration:none;">Admin Panel</a></p>
+        </div></div>`,
+    }).catch(() => {})
+
+    setSubmitted(true)
   }
 
   const scrollToForm = () => {
@@ -64,18 +95,27 @@ export default function AIAudit() {
 
   return (
     <>
+      <WebPageSchema
+        name="Free AI Audit - Stellio Creative Labs"
+        description="Get a free AI audit for your business. Discover how AI automation can save time, cut costs, and grow your startup."
+        url="https://stellio.com.au/ai-audit"
+      />
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://stellio.com.au' },
+        { name: 'AI Audit', url: 'https://stellio.com.au/ai-audit' },
+      ]} />
       {/* ========== HERO ========== */}
       <section className="relative min-h-[90vh] flex items-center pt-[80px] pb-[60px] overflow-hidden">
         {/* Background glow */}
-        <div className="absolute top-[-200px] right-[-200px] w-[600px] h-[600px] bg-[#FF6B2C]/[0.04] rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-[-100px] left-[-100px] w-[400px] h-[400px] bg-[#FF6B2C]/[0.02] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[-200px] right-[-200px] w-[600px] h-[600px] bg-[#FB5005]/[0.04] rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-[-100px] left-[-100px] w-[400px] h-[400px] bg-[#FB5005]/[0.02] rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-[1100px] mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             {/* Left */}
             <div>
               <AnimatedSection>
-                <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-5">
+                <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-5">
                   Free Resource
                 </span>
               </AnimatedSection>
@@ -97,7 +137,7 @@ export default function AIAudit() {
                 <div className="flex flex-wrap gap-4 mb-10">
                   <button
                     onClick={scrollToForm}
-                    className="group relative inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#FF6B2C] text-white text-[0.88rem] font-600 overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(255,107,44,0.25)]"
+                    className="group relative inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#FB5005] text-white text-[0.88rem] font-600 overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(251,80,5,0.25)]"
                   >
                     <span className="relative z-10">Get Free Prompt Playbook</span>
                     <svg className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -106,7 +146,7 @@ export default function AIAudit() {
                     href="https://arclink.online"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.12] text-[#FAFAFA] text-[0.88rem] font-600 hover:border-[#FF6B2C] hover:text-[#FF6B2C] transition-all"
+                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.12] text-[#FAFAFA] text-[0.88rem] font-600 hover:border-[#FB5005] hover:text-[#FB5005] transition-all"
                   >
                     See What ArcLink Does
                   </a>
@@ -117,7 +157,7 @@ export default function AIAudit() {
                 <div className="flex items-center gap-6">
                   <div className="flex -space-x-2">
                     {['MP', 'DL', 'PK'].map((init) => (
-                      <div key={init} className="w-8 h-8 rounded-full bg-[#1A1A1A] border-2 border-[#0A0A0A] flex items-center justify-center text-[0.65rem] font-700 text-[#FF6B2C]">
+                      <div key={init} className="w-8 h-8 rounded-full bg-[#1A1A1A] border-2 border-[#0A0A0A] flex items-center justify-center text-[0.65rem] font-700 text-[#FB5005]">
                         {init}
                       </div>
                     ))}
@@ -132,7 +172,7 @@ export default function AIAudit() {
             {/* Right - Raven image */}
             <AnimatedSection delay={0.2} direction="left">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#FF6B2C]/20 to-transparent rounded-3xl blur-2xl" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#FB5005]/20 to-transparent rounded-3xl blur-2xl" />
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.4 }}
@@ -158,8 +198,8 @@ export default function AIAudit() {
                   className="absolute -bottom-4 -left-4 bg-[#111111] border border-white/[0.06] rounded-xl p-4 shadow-2xl"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#FF6B2C]/[0.1] border border-[#FF6B2C]/[0.15] flex items-center justify-center">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B2C" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <div className="w-10 h-10 rounded-lg bg-[#FB5005]/[0.1] border border-[#FB5005]/[0.15] flex items-center justify-center">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FB5005" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </div>
                     <div>
                       <p className="text-[0.75rem] text-[#71717A]">Agents Online</p>
@@ -177,7 +217,7 @@ export default function AIAudit() {
       <section className="py-[100px] bg-[#0E0E0E]">
         <div className="max-w-[1100px] mx-auto px-6">
           <AnimatedSection className="text-center mb-16 max-w-[600px] mx-auto">
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">The Problem</span>
+            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">The Problem</span>
             <TextReveal>
               <h2 className="font-[Satoshi] text-[clamp(1.6rem,4vw,2.4rem)] font-700 leading-[1.15]">
                 Most businesses use AI like a smarter search bar.
@@ -212,20 +252,20 @@ export default function AIAudit() {
 
             {/* Hermes/Raven */}
             <AnimatedSection delay={0.2}>
-              <div className="bg-[#111111] border border-[#FF6B2C]/[0.15] rounded-2xl p-8 h-full relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF6B2C]/[0.03] rounded-full blur-3xl" />
+              <div className="bg-[#111111] border border-[#FB5005]/[0.15] rounded-2xl p-8 h-full relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#FB5005]/[0.03] rounded-full blur-3xl" />
                 <div className="flex items-center gap-2 mb-6">
-                  <div className="w-2 h-2 rounded-full bg-[#FF6B2C]" />
-                  <span className="text-[0.75rem] font-600 text-[#FF6B2C] uppercase tracking-wider">Agent Execution</span>
+                  <div className="w-2 h-2 rounded-full bg-[#FB5005]" />
+                  <span className="text-[0.75rem] font-600 text-[#FB5005] uppercase tracking-wider">Agent Execution</span>
                 </div>
                 <div className="space-y-4">
-                  <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#FF6B2C]/[0.08]">
+                  <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#FB5005]/[0.08]">
                     <p className="text-[0.88rem] text-[#FAFAFA]">"Scan my Notion draft, write 3 LinkedIn hooks, schedule them, track which gets best engagement"</p>
                   </div>
-                  <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#FF6B2C]/[0.08]">
+                  <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#FB5005]/[0.08]">
                     <p className="text-[0.88rem] text-[#FAFAFA]">"Monitor competitor pricing weekly and alert me on Telegram when anything changes"</p>
                   </div>
-                  <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#FF6B2C]/[0.08]">
+                  <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#FB5005]/[0.08]">
                     <p className="text-[0.88rem] text-[#FAFAFA]">"Pull project data, draft client updates, queue them for approval every Wednesday"</p>
                   </div>
                 </div>
@@ -238,108 +278,11 @@ export default function AIAudit() {
         </div>
       </section>
 
-      {/* ========== THE PLAYBOOK ========== */}
-      <section id="playbook" className="py-[120px]">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection className="text-center mb-6 max-w-[650px] mx-auto">
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">The Raven Prompt Playbook</span>
-            <TextReveal>
-              <h2 className="font-[Satoshi] text-[clamp(1.8rem,4vw,2.8rem)] font-700 leading-[1.1] mb-5">
-                15 prompts across 5 categories.
-              </h2>
-            </TextReveal>
-            <p className="text-[1.05rem] text-[#A1A1AA] leading-relaxed">
-              Each prompt includes the exact text, which skills trigger, and how much time you get back.
-            </p>
-          </AnimatedSection>
-
-          {/* Category tabs */}
-          <AnimatedSection delay={0.1} className="mb-12">
-            <div className="flex flex-wrap justify-center gap-2">
-              {promptCategories.map((cat, i) => (
-                <button
-                  key={cat.id}
-                  onClick={() => { setActiveCategory(i); setShowAllPrompts(false) }}
-                  className={`px-4 py-2 rounded-lg text-[0.82rem] font-600 transition-all duration-300 ${
-                    activeCategory === i
-                      ? 'bg-[#FF6B2C] text-white'
-                      : 'bg-[#111111] text-[#A1A1AA] border border-white/[0.06] hover:border-white/[0.12] hover:text-[#FAFAFA]'
-                  }`}
-                >
-                  {cat.title}
-                </button>
-              ))}
-            </div>
-          </AnimatedSection>
-
-          {/* Active category */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeCategory}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-            >
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#FF6B2C]/[0.08] border border-[#FF6B2C]/[0.15] flex items-center justify-center">
-                    <svg className="w-5 h-5 text-[#FF6B2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: promptCategories[activeCategory].icon }} />
-                  </div>
-                  <div>
-                    <h3 className="font-[Satoshi] text-[1.2rem] font-600">{promptCategories[activeCategory].title}</h3>
-                    <p className="text-[0.82rem] text-[#71717A]">{promptCategories[activeCategory].description}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                {promptCategories[activeCategory].prompts.slice(0, showAllPrompts ? undefined : 2).map((prompt, i) => (
-                  <motion.div
-                    key={prompt.title}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.08, duration: 0.4 }}
-                    className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 hover:border-white/[0.1] transition-colors duration-300"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                      <h4 className="font-[Satoshi] text-[1rem] font-600">{prompt.title}</h4>
-                      <span className="text-[0.72rem] font-600 text-[#FF6B2C] bg-[#FF6B2C]/[0.08] px-2.5 py-1 rounded-md whitespace-nowrap">
-                        {prompt.timeSaved} saved
-                      </span>
-                    </div>
-                    <div className="bg-[#0A0A0A] rounded-xl p-4 border border-white/[0.04] mb-4">
-                      <p className="text-[0.88rem] text-[#FAFAFA] leading-relaxed font-500">"{prompt.text}"</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {prompt.skills.map((skill) => (
-                        <SkillBadge key={skill} name={skill} />
-                      ))}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {promptCategories[activeCategory].prompts.length > 2 && !showAllPrompts && (
-                <div className="text-center mt-6">
-                  <button
-                    onClick={scrollToForm}
-                    className="text-[0.85rem] font-600 text-[#FF6B2C] hover:text-[#FAFAFA] transition-colors"
-                  >
-                    + {promptCategories[activeCategory].prompts.length - 2} more prompts in the full playbook. Unlock them below.
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </section>
-
       {/* ========== MINI DEMO ========== */}
       <section className="py-[100px] bg-[#0E0E0E]">
         <div className="max-w-[700px] mx-auto px-6">
           <AnimatedSection className="text-center mb-12">
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">See It In Action</span>
+            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">See It In Action</span>
             <TextReveal>
               <h2 className="font-[Satoshi] text-[clamp(1.6rem,4vw,2.4rem)] font-700 leading-[1.15] mb-4">
                 This is not a chatbot. It is an executor.
@@ -353,8 +296,8 @@ export default function AIAudit() {
           <div className="bg-[#111111] border border-white/[0.06] rounded-3xl p-6 sm:p-8">
             {/* Chat header */}
             <div className="flex items-center gap-3 pb-4 mb-4 border-b border-white/[0.06]">
-              <div className="w-10 h-10 rounded-full bg-[#FF6B2C]/[0.1] border border-[#FF6B2C]/[0.15] flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B2C" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <div className="w-10 h-10 rounded-full bg-[#FB5005]/[0.1] border border-[#FB5005]/[0.15] flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FB5005" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
               <div>
                 <p className="text-[0.88rem] font-600 text-[#FAFAFA]">Raven</p>
@@ -383,7 +326,7 @@ export default function AIAudit() {
       <section ref={formRef} className="py-[120px]">
         <div className="max-w-[600px] mx-auto px-6">
           <AnimatedSection className="text-center mb-10">
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Get The Playbook</span>
+            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Get The Playbook</span>
             <TextReveal>
               <h2 className="font-[Satoshi] text-[clamp(1.6rem,4vw,2.2rem)] font-700 leading-[1.15] mb-4">
                 Enter your email. Get the full playbook instantly.
@@ -403,7 +346,7 @@ export default function AIAudit() {
                     <input
                       type="text"
                       required
-                      className="w-full bg-[#0A0A0A] border border-white/[0.08] rounded-xl px-4 py-3 text-[0.9rem] text-[#FAFAFA] placeholder-[#71717A] focus:border-[#FF6B2C] focus:outline-none transition-colors"
+                      className="w-full bg-[#0A0A0A] border border-white/[0.08] rounded-xl px-4 py-3 text-[0.9rem] text-[#FAFAFA] placeholder-[#71717A] focus:border-[#FB5005] focus:outline-none transition-colors"
                       placeholder="Your name"
                     />
                   </div>
@@ -414,13 +357,13 @@ export default function AIAudit() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#0A0A0A] border border-white/[0.08] rounded-xl px-4 py-3 text-[0.9rem] text-[#FAFAFA] placeholder-[#71717A] focus:border-[#FF6B2C] focus:outline-none transition-colors"
+                      className="w-full bg-[#0A0A0A] border border-white/[0.08] rounded-xl px-4 py-3 text-[0.9rem] text-[#FAFAFA] placeholder-[#71717A] focus:border-[#FB5005] focus:outline-none transition-colors"
                       placeholder="you@company.com"
                     />
                   </div>
                   <div>
                     <label className="block text-[0.78rem] font-600 text-[#A1A1AA] mb-2 uppercase tracking-wider">Role</label>
-                    <select className="w-full bg-[#0A0A0A] border border-white/[0.08] rounded-xl px-4 py-3 text-[0.9rem] text-[#FAFAFA] focus:border-[#FF6B2C] focus:outline-none transition-colors appearance-none">
+                    <select className="w-full bg-[#0A0A0A] border border-white/[0.08] rounded-xl px-4 py-3 text-[0.9rem] text-[#FAFAFA] focus:border-[#FB5005] focus:outline-none transition-colors appearance-none">
                       <option value="">Select your role</option>
                       <option value="agency">Agency Owner</option>
                       <option value="freelancer">Freelancer</option>
@@ -435,7 +378,7 @@ export default function AIAudit() {
                     <div className="flex flex-wrap gap-2">
                       {['ChatGPT', 'Claude', 'Gemini', 'Nothing yet'].map((tool) => (
                         <label key={tool} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0A0A0A] border border-white/[0.06] cursor-pointer hover:border-white/[0.12] transition-colors">
-                          <input type="checkbox" className="w-4 h-4 rounded border-white/[0.12] bg-[#0A0A0A] text-[#FF6B2C] focus:ring-[#FF6B2C]" />
+                          <input type="checkbox" className="w-4 h-4 rounded border-white/[0.12] bg-[#0A0A0A] text-[#FB5005] focus:ring-[#FB5005]" />
                           <span className="text-[0.82rem] text-[#A1A1AA]">{tool}</span>
                         </label>
                       ))}
@@ -444,7 +387,7 @@ export default function AIAudit() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full group relative inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-[#FF6B2C] text-white text-[0.9rem] font-600 overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(255,107,44,0.25)]"
+                  className="w-full group relative inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-[#FB5005] text-white text-[0.9rem] font-600 overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(251,80,5,0.25)]"
                 >
                   <span className="relative z-10">Send Me The Playbook</span>
                   <svg className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -457,10 +400,10 @@ export default function AIAudit() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-[#111111] border border-[#FF6B2C]/[0.15] rounded-2xl p-10 text-center"
+                className="bg-[#111111] border border-[#FB5005]/[0.15] rounded-2xl p-10 text-center"
               >
-                <div className="w-16 h-16 rounded-full bg-[#FF6B2C]/[0.1] border border-[#FF6B2C]/[0.15] flex items-center justify-center mx-auto mb-6">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF6B2C" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <div className="w-16 h-16 rounded-full bg-[#FB5005]/[0.1] border border-[#FB5005]/[0.15] flex items-center justify-center mx-auto mb-6">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FB5005" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 </div>
                 <h3 className="font-[Satoshi] text-[1.3rem] font-700 mb-3">Playbook is on its way.</h3>
                 <p className="text-[0.9rem] text-[#A1A1AA] mb-6">
@@ -476,7 +419,7 @@ export default function AIAudit() {
                     href="https://arclink.online"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0A0A0A] border border-[#FF6B2C]/[0.2] text-[#FF6B2C] text-[0.85rem] font-600 hover:bg-[#FF6B2C]/[0.08] transition-all"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0A0A0A] border border-[#FB5005]/[0.2] text-[#FB5005] text-[0.85rem] font-600 hover:bg-[#FB5005]/[0.08] transition-all"
                   >
                     Deploy Your Own Agent on ArcLink
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
@@ -492,7 +435,7 @@ export default function AIAudit() {
       <section className="py-[100px] bg-[#0E0E0E]">
         <div className="max-w-[1100px] mx-auto px-6">
           <AnimatedSection className="text-center mb-12 max-w-[600px] mx-auto">
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">What Agents Connect To</span>
+            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">What Agents Connect To</span>
             <TextReveal>
               <h2 className="font-[Satoshi] text-[clamp(1.6rem,4vw,2.4rem)] font-700 leading-[1.15]">
                 Your agent talks to the tools you already use.
@@ -520,7 +463,7 @@ export default function AIAudit() {
       <section className="py-[100px]">
         <div className="max-w-[1100px] mx-auto px-6">
           <AnimatedSection className="text-center mb-12 max-w-[600px] mx-auto">
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">What Users Say</span>
+            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">What Users Say</span>
             <TextReveal>
               <h2 className="font-[Satoshi] text-[clamp(1.6rem,4vw,2.4rem)] font-700 leading-[1.15]">
                 Real agents. Real automation. Real time saved.
@@ -550,7 +493,7 @@ export default function AIAudit() {
                   <p className="text-[0.92rem] text-[#A1A1AA] leading-relaxed mb-6 flex-1">"{t.text}"</p>
 
                   <div className="flex items-center gap-3 pt-4 border-t border-white/[0.04]">
-                    <div className="w-9 h-9 rounded-full bg-[#0A0A0A] border border-white/[0.08] flex items-center justify-center text-[0.72rem] font-700 text-[#FF6B2C]">
+                    <div className="w-9 h-9 rounded-full bg-[#0A0A0A] border border-white/[0.08] flex items-center justify-center text-[0.72rem] font-700 text-[#FB5005]">
                       {t.name.split(' ').map((n) => n[0]).join('')}
                     </div>
                     <div>
@@ -570,10 +513,10 @@ export default function AIAudit() {
         <div className="max-w-[1100px] mx-auto px-6">
           <AnimatedSection>
             <div className="relative bg-[#0E0E0E] border border-white/[0.06] rounded-3xl p-12 md:p-16 text-center overflow-hidden">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#FF6B2C]/[0.03] rounded-full blur-[120px] pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#FB5005]/[0.03] rounded-full blur-[120px] pointer-events-none" />
 
               <div className="relative z-10 max-w-[600px] mx-auto">
-                <div className="w-16 h-16 rounded-full bg-[#FF6B2C]/[0.08] border border-[#FF6B2C]/[0.15] flex items-center justify-center mx-auto mb-6">
+                <div className="w-16 h-16 rounded-full bg-[#FB5005]/[0.08] border border-[#FB5005]/[0.15] flex items-center justify-center mx-auto mb-6">
                   <img
                     src="https://arclink.online/Arclink_v3--orange_symbol_white_text%20copy.svg"
                     alt="ArcLink"
@@ -597,14 +540,14 @@ export default function AIAudit() {
                     href="https://arclink.online"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group relative inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#FF6B2C] text-white text-[0.88rem] font-600 overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(255,107,44,0.25)]"
+                    className="group relative inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#FB5005] text-white text-[0.88rem] font-600 overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(251,80,5,0.25)]"
                   >
                     <span className="relative z-10">Get ArcLink</span>
                     <svg className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
                   </a>
                   <button
                     onClick={scrollToForm}
-                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.12] text-[#FAFAFA] text-[0.88rem] font-600 hover:border-[#FF6B2C] hover:text-[#FF6B2C] transition-all"
+                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.12] text-[#FAFAFA] text-[0.88rem] font-600 hover:border-[#FB5005] hover:text-[#FB5005] transition-all"
                   >
                     Get Free Prompt Playbook
                   </button>

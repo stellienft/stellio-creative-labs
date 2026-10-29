@@ -6,10 +6,27 @@ import Footer from './components/Footer'
 import Home from './pages/Home'
 import About from './pages/About'
 import Work from './pages/Work'
-import Pricing from './pages/Pricing'
+import Services from './pages/Services'
 import Contact from './pages/Contact'
 import Blog from './pages/Blog'
+import BlogPost from './pages/BlogPost'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
+import LogoQuestionnaire from './pages/LogoQuestionnaire'
+import WebQuestionnaire from './pages/WebQuestionnaire'
+import EOFYForm from './pages/EOFYForm'
+import FAQ from './pages/FAQ'
 import AIAudit from './pages/AIAudit'
+import SiteAudit from './pages/SiteAudit'
+import NicheLanding from './pages/NicheLanding'
+import ExampleSite from './pages/ExampleSite'
+import DesignShowcase from './pages/DesignShowcase'
+import Admin from './pages/Admin'
+import DynamicPage from './pages/DynamicPage'
+import { AuthProvider } from './context/AuthContext'
+import { SettingsProvider } from './context/SettingsContext'
+import { AnalyticsProvider } from './context/AnalyticsContext'
+import { OrganizationSchema } from './components/JsonLd'
 
 const SmoothScrollContext = createContext(null)
 export const useSmoothScroll = () => useContext(SmoothScrollContext)
@@ -56,23 +73,48 @@ function ScrollToTop() {
 }
 
 function App() {
+  const location = useLocation()
+  const isAdmin = location.pathname.startsWith('/admin')
+  const isExample = location.pathname.startsWith('/examples/')
+  const hideChrome = isAdmin || isExample || location.pathname === '/showcase'
+
   return (
-    <SmoothScrollProvider>
-      <div className="noise-overlay">
-        <ScrollToTop />
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/work" element={<Work />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/ai-audit" element={<AIAudit />} />
-        </Routes>
-        <Footer />
-      </div>
-    </SmoothScrollProvider>
+    <AuthProvider>
+      <SettingsProvider>
+      <AnalyticsProvider>
+      <SmoothScrollProvider>
+        <div className={!hideChrome ? 'noise-overlay' : ''}>
+          <OrganizationSchema />
+          <ScrollToTop />
+          {!hideChrome && <Navbar />}
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/work" element={<Work />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/ai-audit" element={<AIAudit />} />
+            <Route path="/site-audit" element={<SiteAudit />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/logo-questionnaire" element={<LogoQuestionnaire />} />
+            <Route path="/web-questionnaire" element={<WebQuestionnaire />} />
+            <Route path="/eofy" element={<EOFYForm />} />
+            <Route path="/for/:niche" element={<NicheLanding />} />
+            <Route path="/examples/:template" element={<ExampleSite />} />
+<Route path="/showcase" element={<DesignShowcase />} />
+            <Route path="/:slug" element={<DynamicPage />} />
+          </Routes>
+          {!hideChrome && <Footer />}
+        </div>
+      </SmoothScrollProvider>
+      </AnalyticsProvider>
+      </SettingsProvider>
+    </AuthProvider>
   )
 }
 

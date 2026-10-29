@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="inline-block mb-4">
-              <span className="font-[Satoshi] text-[1.3rem] font-800 text-[#FAFAFA]">STELLIO</span>
+              <img src="/logo.png" alt="Stellio" className="h-8 w-auto block" />
             </Link>
             <p className="text-[0.88rem] text-[#A1A1AA] leading-relaxed mb-6 max-w-[280px]">
               Brisbane's AI-powered brand and platform studio. Built by Stellio Koutsis.
@@ -51,7 +51,7 @@ export default function Footer() {
               {['Brand Systems', 'Smart Websites', 'AI Integration', 'Business OS', 'Managed Stack'].map((s) => (
                 <Link
                   key={s}
-                  to="/#services"
+                  to="/services"
                   className="text-[0.87rem] text-[#A1A1AA] hover:text-[#FAFAFA] transition-colors duration-200"
                 >
                   {s}
@@ -66,10 +66,10 @@ export default function Footer() {
             <div className="flex flex-col gap-3">
               {[
                 { label: 'Our Work', href: '/work' },
-                { label: 'Pricing', href: '/pricing' },
                 { label: 'About', href: '/about' },
                 { label: 'Blog', href: '/blog' },
                 { label: 'AI Audit', href: '/ai-audit' },
+                { label: 'FAQ', href: '/faq' },
                 { label: 'Contact', href: '/contact' },
               ].map((l) => (
                 <Link
@@ -107,7 +107,7 @@ export default function Footer() {
           <div className="flex gap-6">
             <Link to="/privacy" className="text-[0.82rem] text-[#71717A] hover:text-[#FAFAFA] transition-colors">Privacy</Link>
             <Link to="/terms" className="text-[0.82rem] text-[#71717A] hover:text-[#FAFAFA] transition-colors">Terms</Link>
-            <a href="https://arclink.online" target="_blank" rel="noopener noreferrer" className="text-[0.82rem] text-[#71717A] hover:text-[#FF6B2C] transition-colors">Arclink AI</a>
+            <a href="https://arclink.online" target="_blank" rel="noopener noreferrer" className="text-[0.82rem] text-[#71717A] hover:text-[#FB5005] transition-colors">Arclink AI</a>
           </div>
         </div>
       </div>

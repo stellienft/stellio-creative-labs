@@ -1,56 +1,88 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import AnimatedSection from '../components/AnimatedSection'
-import TextReveal from '../components/TextReveal'
-
-const articles = [
-  { title: '5 Signs Your Business Needs an AI Agent', category: 'AI for Business', date: 'May 2026', excerpt: 'When repetitive work slows you down, an AI agent might be the faster solution.', gradient: 'from-[#1a3a2a] to-[#0f2415]' },
-  { title: "Why Your 'Spreadsheet Business' Is Costing You Growth", category: 'Platforms', date: 'May 2026', excerpt: "Custom dashboards aren't just for big companies. Here's why SMBs need them now.", gradient: 'from-[#1a2a3a] to-[#0f1a24]' },
-  { title: 'Brand System vs. Logo: What Actually Moves the Needle', category: 'Branding', date: 'April 2026', excerpt: 'A logo is nice. A brand system is what turns visitors into believers.', gradient: 'from-[#3a1a3a] to-[#240f24]' },
-  { title: 'How We Built greenfunding in 8 Weeks', category: 'Case Study', date: 'March 2026', excerpt: 'The full story behind the brand, platform, and AI integration for a green-tech funding startup.', gradient: 'from-[#1a2e1a] to-[#0f1f0f]' },
-  { title: 'The Future of Web3 Branding', category: 'Web3', date: 'March 2026', excerpt: 'Why decentralised brands need different thinking — and how to get it right.', gradient: 'from-[#2a1a3a] to-[#1a0f24]' },
-  { title: "From Idea to MVP: A Founder's Guide", category: 'Startups', date: 'February 2026', excerpt: 'How to validate, build, and launch your product without wasting months.', gradient: 'from-[#3a2e1a] to-[#2a1f0f]' },
-]
+import { WebPageSchema, BreadcrumbSchema } from '../components/JsonLd'
 
 export default function Blog() {
-  return (
-    <>
-      <section className="pt-[140px] pb-20 text-center">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection>
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Blog</span>
-            <TextReveal>
-              <h1 className="font-[Satoshi] text-[clamp(2rem,5vw,3.6rem)] font-700 leading-[1.05] mb-6">
-                Free knowledge. <span className="gradient-text">Real tactics.</span>
-              </h1>
-            </TextReveal>
-            <p className="text-[1.05rem] text-[#A1A1AA] max-w-[600px] mx-auto">
-              Thoughts on branding, AI, web design, and building businesses that last.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-      <section className="pb-[120px]">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {articles.map((a, i) => (
-              <AnimatedSection key={a.title} delay={i * 0.08}>
-                <article className="group bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.12] transition-all duration-500 cursor-pointer">
-                  <div className={`h-[160px] bg-gradient-to-br ${a.gradient} flex items-center justify-center relative`}>
-                    <span className="font-[Satoshi] text-[1.8rem] font-700 text-white/10">{a.category}</span>
+  useEffect(() => {
+    supabase.from('blog_posts').select('*').eq('status', 'published').order('ordering', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) setPosts(data)
+        setLoading(false)
+      })
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#FB5005] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen pt-[100px] pb-20 px-6">
+      <WebPageSchema
+        type="CollectionPage"
+        name="Blog - Stellio Creative Labs"
+        description="Strategy, design, and automation insights for startups building bold brands and smart platforms."
+        url="https://stellio.com.au/blog"
+      />
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://stellio.com.au' },
+        { name: 'Blog', url: 'https://stellio.com.au/blog' },
+      ]} />
+      <div className="max-w-[1080px] mx-auto">
+        <AnimatedSection>
+          <span className="text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em]">Insights</span>
+          <h1 className="font-[Satoshi] text-[2.5rem] md:text-[3rem] font-700 mt-3 mb-4">Blog</h1>
+          <p className="text-[1.05rem] text-[#A1A1AA] leading-relaxed mb-12 max-w-[600px]">
+            Strategy, design, and automation insights for startups building bold brands and smart platforms.
+          </p>
+        </AnimatedSection>
+
+        {posts.length === 0 ? (
+          <AnimatedSection>
+            <p className="text-[#71717A]">No posts yet. Check back soon.</p>
+          </AnimatedSection>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {posts.map((post, i) => (
+              <AnimatedSection key={post.id} delay={i * 0.06}>
+                <Link to={`/blog/${post.slug}`} className="block group h-full">
+                  <div className="flex flex-col h-full bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden transition-all hover:border-white/[0.12] hover:shadow-lg">
+                    <div className="relative aspect-[16/9] overflow-hidden bg-[#0E0E0E]">
+                      {post.cover_image ? (
+                        <img
+                          src={post.cover_image}
+                          alt={post.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className={`w-full h-full bg-gradient-to-br ${post.gradient || 'from-[#1a2a3a] to-[#0f1a24]'}`} />
+                      )}
+                      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-[0.66rem] font-600 text-[#FB5005] uppercase tracking-[0.1em]">{post.category}</span>
+                    </div>
+                    <div className="flex flex-col gap-2.5 p-5 md:p-6 flex-1">
+                      <div className="flex items-center gap-2 text-[0.68rem] text-[#71717A]">
+                        <span>{post.date}</span>
+                        {post.read_time && <><span>·</span><span>{post.read_time}</span></>}
+                      </div>
+                      <h2 className="font-[Satoshi] text-[1.05rem] md:text-[1.15rem] font-700 text-[#FAFAFA] leading-snug group-hover:text-[#FB5005] transition-colors">{post.title}</h2>
+                      <p className="text-[0.85rem] text-[#A1A1AA] leading-relaxed line-clamp-2">{post.excerpt}</p>
+                    </div>
                   </div>
-                  <div className="p-6">
-                    <span className="text-[0.72rem] text-[#FF6B2C] font-600 uppercase tracking-[0.05em]">{a.category}</span>
-                    <h3 className="font-[Satoshi] text-[1.05rem] font-600 mt-2 mb-2 leading-snug group-hover:text-[#FF6B2C] transition-colors">{a.title}</h3>
-                    <p className="text-[0.85rem] text-[#A1A1AA] mb-4 leading-relaxed">{a.excerpt}</p>
-                    <span className="text-[0.78rem] text-[#71717A]">{a.date}</span>
-                  </div>
-                </article>
+                </Link>
               </AnimatedSection>
             ))}
           </div>
-        </div>
-      </section>
-    </>
+        )}
+      </div>
+    </div>
   )
 }

@@ -10,20 +10,13 @@
   --color-text-primary: #FAFAFA;
   --color-text-secondary: #A1A1AA;
   --color-text-muted: #71717A;
-  --color-accent: #FF6B2C;
+  --color-accent: #FB5005;
   --color-accent-hover: #E55A1F;
-  --color-accent-glow: rgba(255,107,44,0.12);
+  --color-accent-glow: rgba(251,80,5,0.12);
   --color-success: #22C55E;
   --color-danger: #EF4444;
   --font-heading: 'Satoshi', 'Inter', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('https://cdn.fontshare.com/woff2/Satoshi-Variable.woff2') format('woff2');
-  font-weight: 300 900;
-  font-display: swap;
 }
 
 @font-face {
@@ -54,15 +47,22 @@
   font-display: swap;
 }
 
-html { scroll-behavior: auto; }
+html { scroll-behavior: auto; background: #0A0A0A; overflow-x: hidden; }
 
 body {
+  overflow-x: hidden;
   font-family: var(--font-body);
   background: var(--color-bg);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  min-height: 100vh;
+  background: #0A0A0A;
 }
 
 ::selection {
@@ -119,17 +119,17 @@ html.lenis, html.lenis body { height: auto; }
   z-index: 9999;
 }
 
-/* Gradient text */
+/* Gradient text - Bitcoin orange + serif italic */
 .gradient-text {
-  background: linear-gradient(135deg, #FF6B2C 0%, #FF9E6B 50%, #FF6B2C 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  color: #FB5005;
+  font-weight: 600;
 }
 
 /* Glow effect */
 .glow-accent {
-  box-shadow: 0 0 40px rgba(255,107,44,0.15), 0 0 80px rgba(255,107,44,0.05);
+  box-shadow: 0 0 40px rgba(251,80,5,0.15), 0 0 80px rgba(251,80,5,0.05);
 }
 
 /* Card shine on hover */
@@ -153,7 +153,7 @@ html.lenis, html.lenis body { height: auto; }
 .cursor-follower {
   position: fixed;
   width: 20px; height: 20px;
-  border: 1px solid rgba(255,107,44,0.5);
+  border: 1px solid rgba(251,80,5,0.5);
   border-radius: 50%;
   pointer-events: none;
   z-index: 9998;

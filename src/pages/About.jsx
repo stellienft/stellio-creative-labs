@@ -1,14 +1,16 @@
 import React from 'react'
 import AnimatedSection from '../components/AnimatedSection'
 import TextReveal from '../components/TextReveal'
+import LogoCarousel from '../components/LogoCarousel'
+import { WebPageSchema, BreadcrumbSchema } from '../components/JsonLd'
 
 const creds = [
-  { icon: 'rocket', title: 'BlockChat', desc: 'Founded & Acquired by Zapme' },
-  { icon: 'award', title: 'Crypto Knights S2', desc: 'Featured Founder' },
-  { icon: 'zap', title: 'Arclink', desc: 'AI Platform Creator' },
-  { icon: 'star', title: '70+ Reviews', desc: '5-Star Average' },
-  { icon: 'map-pin', title: 'Brisbane', desc: 'Based, Global Reach' },
-  { icon: 'cpu', title: 'Web3 + AI', desc: 'Next-Gen Tech Focus' },
+  { icon: 'rocket', title: 'BlockChat', desc: 'Founded & Acquired by Zapme.' },
+  { icon: 'award', title: 'Crypto Knights S2 (Amazon Prime)', desc: 'Zapme is featured on Crypto Knights.' },
+  { icon: 'zap', title: 'ArcLink', desc: 'Autonomous AI Agent Deployment.' },
+  { icon: 'star', title: '75+ Reviews', desc: '5-Star Average' },
+  { icon: 'map-pin', title: 'Brisbane, Australia', desc: 'Based, Global Reach' },
+  { icon: 'cpu', title: 'Web3 + AI', desc: 'Next-Gen Tech Focus and Bitcoin Maxi' },
 ]
 
 const iconPaths = {
@@ -23,11 +25,21 @@ const iconPaths = {
 export default function About() {
   return (
     <>
+      <WebPageSchema
+        type="AboutPage"
+        name="About Stellio Creative Labs"
+        description="15 years of design, development, and entrepreneurship. Meet Stellio Koutsis, founder of Stellio Creative Labs and BlockChat."
+        url="https://stellio.com.au/about"
+      />
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://stellio.com.au' },
+        { name: 'About', url: 'https://stellio.com.au/about' },
+      ]} />
       {/* Page Hero */}
       <section className="pt-[140px] pb-20 text-center">
         <div className="max-w-[1100px] mx-auto px-6">
           <AnimatedSection>
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">
+            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">
               About
             </span>
             <TextReveal>
@@ -37,7 +49,7 @@ export default function About() {
               </h1>
             </TextReveal>
             <p className="text-[1.05rem] text-[#A1A1AA] max-w-[600px] mx-auto">
-              Stellio Koutsis — designer, developer, and founder with a track record of building and exiting companies.
+              Stellio Koutsis. Designer, developer, and founder. 15 years building brands, platforms, and companies.
             </p>
           </AnimatedSection>
         </div>
@@ -48,33 +60,56 @@ export default function About() {
         <div className="max-w-[1100px] mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <AnimatedSection>
-              <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-12 min-h-[400px] flex items-center justify-center">
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-white/30">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                </svg>
+              <div className="bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden min-h-[400px] flex items-center justify-center">
+                <img
+                  src="/stellio.jpg"
+                  alt="Stellio Koutsis"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </AnimatedSection>
             <AnimatedSection delay={0.15}>
               <h2 className="font-[Satoshi] text-[1.8rem] font-700 mb-6">
-                From Web3 founder to<br /><span className="gradient-text">platform builder.</span>
+                15 years. 300+ clients.<br /><span className="gradient-text">Still hands-on.</span>
               </h2>
               <p className="text-[1rem] text-[#A1A1AA] leading-relaxed mb-5">
-                I'm <strong className="text-[#FAFAFA]">Stellio Koutsis</strong> — designer, developer, and founder.
-                Before Stellio Creative Labs, I built <strong className="text-[#FAFAFA]">BlockChat</strong>, a Web3 community
-                platform that was <strong className="text-[#FAFAFA]">acquired by Zapme</strong>. I also featured on
-                <strong className="text-[#FAFAFA]"> Crypto Knights Season 2</strong> sharing my founder journey.
+                I am <strong className="text-[#FAFAFA]">Stellio Koutsis</strong>. For over 15 years I have been
+                running my own design and development business, working closely with each client from early
+                ideation to finished brand identity. Over 300 businesses have trusted me to make them
+                recognisable, memorable, and aligned with their vision.
               </p>
               <p className="text-[1rem] text-[#A1A1AA] leading-relaxed mb-5">
-                I know what it's like to build from nothing. Stellio isn't just an agency — it's me and a tight
-                network building systems, platforms, and automations. Every project is a partnership.
+                Along the way I also built <strong className="text-[#FAFAFA]">BlockChat</strong>, a decentralised
+                Web3 community platform that was <strong className="text-[#FAFAFA]">acquired by Zapme</strong>.
+                Running a full-time design business, building a blockchain platform, raising two kids, and being
+                a husband taught me something most agencies miss: what it actually takes to juggle
+                everything and still deliver.
               </p>
-              <p className="text-[1rem] text-[#A1A1AA] leading-relaxed">
+              <p className="text-[1rem] text-[#A1A1AA] leading-relaxed mb-8">
                 I use the same tools I build for clients: <strong className="text-[#FAFAFA]">React, Supabase, AI agents,</strong>
                 and modern frameworks that ship fast and scale hard. No bloat, no overhead, no junior teams.
-                Just senior-level work with founder empathy.
+                Just senior-level work from someone who knows the pressure you are under.
               </p>
+              <a
+                href="https://linkedin.com/in/stelliokoutsis"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl border border-white/[0.12] text-[0.85rem] font-600 text-[#A1A1AA] hover:border-[#0A66C2] hover:text-[#0A66C2] transition-all duration-300"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+                Connect on LinkedIn
+              </a>
             </AnimatedSection>
           </div>
+        </div>
+      </section>
+
+      {/* Client logos */}
+      <section className="py-[80px] bg-[#0E0E0E]">
+        <div className="max-w-[1100px] mx-auto px-6">
+          <LogoCarousel />
         </div>
       </section>
 
@@ -82,7 +117,7 @@ export default function About() {
       <section className="py-[100px]">
         <div className="max-w-[1100px] mx-auto px-6">
           <AnimatedSection className="text-center mb-16">
-            <span className="inline-block text-[#FF6B2C] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Credentials</span>
+            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Credentials</span>
             <TextReveal>
               <h2 className="font-[Satoshi] text-[clamp(1.6rem,3.5vw,2.2rem)] font-700">
                 Proof, not promises.
@@ -94,8 +129,8 @@ export default function About() {
             {creds.map((c, i) => (
               <AnimatedSection key={c.title} delay={i * 0.08}>
                 <div className="bg-[#111111] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.12] transition-all duration-300 group">
-                  <div className="w-10 h-10 rounded-lg bg-[#FF6B2C]/[0.08] border border-[#FF6B2C]/[0.15] flex items-center justify-center mb-4 group-hover:bg-[#FF6B2C]/[0.15] transition-colors">
-                    <svg className="w-[18px] h-[18px] text-[#FF6B2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: iconPaths[c.icon] }} />
+                  <div className="w-10 h-10 rounded-lg bg-[#FB5005]/[0.08] border border-[#FB5005]/[0.15] flex items-center justify-center mb-4 group-hover:bg-[#FB5005]/[0.15] transition-colors">
+                    <svg className="w-[18px] h-[18px] text-[#FB5005]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: iconPaths[c.icon] }} />
                   </div>
                   <h4 className="text-[0.95rem] font-600 mb-1">{c.title}</h4>
                   <span className="text-[0.8rem] text-[#71717A]">{c.desc}</span>
