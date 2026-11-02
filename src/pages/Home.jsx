@@ -241,21 +241,30 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-14">
             {projects.map((p, i) => (
               <AnimatedSection key={p.name} delay={i * 0.08}>
-                <Card className="overflow-hidden h-full">
-                  <div className="h-[170px] flex items-center justify-center bg-gradient-to-br from-[#141414] to-[#0D0D0D] border-b border-white/[0.07]">
-                    <img src={p.image} alt={p.name} loading="lazy" className="max-h-[72px] max-w-[70%] object-contain" />
+                <Card className="overflow-hidden h-full group">
+                  <div className="relative h-[150px] flex items-end p-6 border-b border-white/[0.07] bg-[radial-gradient(130%_120%_at_80%_0%,rgba(251,80,5,0.10),transparent_60%)] bg-gradient-to-br from-[#141414] to-[#0D0D0D] overflow-hidden">
+                    <span className="absolute -top-3 right-4 font-[Playfair_Display] italic text-[5.5rem] leading-none text-white/[0.08] select-none group-hover:text-[#FB5005]/[0.14] transition-colors duration-500">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <div>
+                      <div className="text-[0.68rem] font-600 text-[#FB5005] uppercase tracking-[0.1em] mb-2.5">{p.tag}</div>
+                      <div className="font-[Satoshi] font-900 text-[1.7rem] tracking-[-0.03em] leading-none">
+                        {p.metrics[0]}
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-6">
-                    <div className="text-[0.72rem] font-600 text-[#FB5005] uppercase tracking-[0.06em] mb-2">{p.tag}</div>
+                  <div className="p-6 flex flex-col flex-1">
                     <h3 className="font-[Satoshi] text-[1.12rem] font-700 tracking-[-0.015em]">{p.name}</h3>
                     <p className="mt-2 text-[0.86rem] leading-[1.6] text-[#A1A1AA]">{p.desc}</p>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {p.metrics.map(m => (
-                        <span key={m} className="text-[0.75rem] font-600 text-[#4ADE80] bg-[#22C55E]/[0.09] border border-[#22C55E]/[0.18] px-3 py-1 rounded-full">
-                          {m}
-                        </span>
-                      ))}
-                    </div>
+                    {p.metrics.length > 1 && (
+                      <div className="flex flex-wrap gap-2 mt-auto pt-5">
+                        {p.metrics.slice(1).map(m => (
+                          <span key={m} className="text-[0.75rem] font-600 text-[#4ADE80] bg-[#22C55E]/[0.09] border border-[#22C55E]/[0.18] px-3 py-1 rounded-full">
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </Card>
               </AnimatedSection>
