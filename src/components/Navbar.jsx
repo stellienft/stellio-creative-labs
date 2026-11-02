@@ -14,12 +14,10 @@ const defaultNavLinks = [
 ]
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [navLinks, setNavLinks] = useState(defaultNavLinks)
   const location = useLocation()
 
-  // Fetch menu from DB (menu_items table). Falls back to defaults if empty.
   useEffect(() => {
     supabase.from('menu_items').select('label, href, ordering, is_external')
       .order('ordering', { ascending: false })
@@ -35,12 +33,6 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname])
 
@@ -52,64 +44,42 @@ export default function Navbar() {
   return (
     <>
       <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled
-            ? 'bg-[#0A0A0A]/80 backdrop-blur-2xl border-b border-white/[0.06]'
-            : 'bg-transparent'
-        }`}
+        className="fixed top-4 left-0 right-0 z-50"
       >
-        <div className="max-w-[1200px] mx-auto px-6 h-[64px] flex items-center justify-between">
-          {/* Logo */}
-          <Link
-            to="/"
-            className="relative group"
-          >
-            <img
-              src="/logo.png"
-              alt="Stellio"
-              className="h-9 w-auto block"
-            />
+        <div className="max-w-[1160px] mx-auto px-6 flex items-center justify-between">
+          {/* Brand */}
+          <Link to="/" className="relative group bg-[#0E0E0E]/75 backdrop-blur-xl border border-white/[0.07] rounded-full px-4 py-2">
+            <img src="/logo.png" alt="Stellio" className="h-7 w-auto block" />
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
+          {/* Desktop floating pill */}
+          <div className="hidden md:flex items-center gap-1 bg-[#0E0E0E]/75 backdrop-blur-xl border border-white/[0.07] rounded-full p-1.5">
             {navLinks.map((link) => (
               link.external ? (
                 <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
-                  className="relative text-[0.8rem] font-500 uppercase tracking-[0.08em] transition-colors duration-300 text-[#A1A1AA] hover:text-[#FAFAFA]">
+                  className="font-[Satoshi] text-[0.84rem] font-500 text-[#A1A1AA] hover:text-[#FAFAFA] px-4 py-2 rounded-full transition-all duration-200">
                   {link.label}
                 </a>
               ) : (
                 <Link
                   key={link.label}
                   to={link.href}
-                  className={`relative text-[0.8rem] font-500 uppercase tracking-[0.08em] transition-colors duration-300 group ${
-                    isActive(link.href) ? 'text-[#FAFAFA]' : 'text-[#A1A1AA] hover:text-[#FAFAFA]'
+                  className={`font-[Satoshi] text-[0.84rem] font-500 px-4 py-2 rounded-full transition-all duration-200 ${
+                    isActive(link.href)
+                      ? 'bg-white/[0.08] text-[#FAFAFA]'
+                      : 'text-[#A1A1AA] hover:text-[#FAFAFA]'
                   }`}
                 >
                   {link.label}
-                  <span className={`absolute -bottom-1 left-0 h-[1px] bg-[#FB5005] transition-all duration-400 ease-out ${
-                    isActive(link.href) ? 'w-full' : 'w-0 group-hover:w-full'
-                  }`} />
                 </Link>
               )
             ))}
-          </div>
-
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link
-              to="/ai-audit"
-              className="text-[0.78rem] font-600 text-[#FAFAFA] px-4 py-2 rounded-lg border border-white/[0.12] hover:border-[#FB5005] hover:text-[#FB5005] transition-all duration-300"
-            >
-              AI Audit
-            </Link>
             <Link
               to="/contact"
-              className="text-[0.78rem] font-600 text-white px-5 py-2 rounded-lg bg-[#FB5005] hover:bg-[#E55A1F] transition-all duration-300 hover:shadow-[0_0_20px_rgba(251,80,5,0.3)]"
+              className="font-[Satoshi] text-[0.84rem] font-700 text-white bg-[#FB5005] hover:bg-[#E5470A] px-4 py-2 rounded-full transition-all duration-200 ml-1"
             >
               Book a Call
             </Link>
@@ -118,7 +88,7 @@ export default function Navbar() {
           {/* Mobile Toggle */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg border border-white/[0.08] text-[#FAFAFA] hover:border-white/[0.2] transition-colors"
+            className="md:hidden w-10 h-10 flex items-center justify-center rounded-full bg-[#0E0E0E]/75 backdrop-blur-xl border border-white/[0.07] text-[#FAFAFA]"
             aria-label="Toggle menu"
           >
             <motion.div
@@ -126,26 +96,17 @@ export default function Navbar() {
               className="w-5 h-5 flex flex-col justify-center items-center"
             >
               <motion.span
-                variants={{
-                  closed: { rotate: 0, y: -4 },
-                  open: { rotate: 45, y: 1 },
-                }}
+                variants={{ closed: { rotate: 0, y: -4 }, open: { rotate: 45, y: 1 } }}
                 transition={{ duration: 0.3 }}
                 className="absolute w-5 h-[1.5px] bg-current"
               />
               <motion.span
-                variants={{
-                  closed: { opacity: 1 },
-                  open: { opacity: 0 },
-                }}
+                variants={{ closed: { opacity: 1 }, open: { opacity: 0 } }}
                 transition={{ duration: 0.2 }}
                 className="absolute w-5 h-[1.5px] bg-current"
               />
               <motion.span
-                variants={{
-                  closed: { rotate: 0, y: 4 },
-                  open: { rotate: -45, y: 1 },
-                }}
+                variants={{ closed: { rotate: 0, y: 4 }, open: { rotate: -45, y: 1 } }}
                 transition={{ duration: 0.3 }}
                 className="absolute w-5 h-[1.5px] bg-current"
               />
@@ -182,7 +143,7 @@ export default function Navbar() {
                   ✕
                 </button>
               </div>
-              <div className="flex-1 p-4">
+              <div className="flex-1 p-4 overflow-y-auto">
                 {navLinks.map((link, i) => (
                   <motion.div
                     key={link.label}
@@ -200,18 +161,11 @@ export default function Navbar() {
                   </motion.div>
                 ))}
               </div>
-              <div className="p-4 border-t border-white/[0.06] flex flex-col gap-3">
-                <Link
-                  to="/ai-audit"
-                  onClick={() => setMenuOpen(false)}
-                  className="w-full text-center text-[0.85rem] font-600 text-[#FAFAFA] px-4 py-3 rounded-lg border border-white/[0.12] hover:border-[#FB5005] transition-all"
-                >
-                  Free AI Audit
-                </Link>
+              <div className="p-4 border-t border-white/[0.06]">
                 <Link
                   to="/contact"
                   onClick={() => setMenuOpen(false)}
-                  className="w-full text-center text-[0.85rem] font-600 text-white px-4 py-3 rounded-lg bg-[#FB5005] hover:bg-[#E55A1F] transition-all"
+                  className="block w-full text-center text-[0.85rem] font-600 text-white px-4 py-3 rounded-xl bg-[#FB5005] hover:bg-[#E5470A] transition-all"
                 >
                   Book a Call
                 </Link>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import AnimatedSection from '../components/AnimatedSection'
+import { Em, PageHero, Card } from '../components/ui'
 import { WebPageSchema, BreadcrumbSchema } from '../components/JsonLd'
 
 export default function Blog() {
@@ -25,7 +26,7 @@ export default function Blog() {
   }
 
   return (
-    <div className="min-h-screen pt-[100px] pb-20 px-6">
+    <div className="min-h-screen pb-20">
       <WebPageSchema
         type="CollectionPage"
         name="Blog - Stellio Creative Labs"
@@ -36,25 +37,23 @@ export default function Blog() {
         { name: 'Home', url: 'https://stellio.com.au' },
         { name: 'Blog', url: 'https://stellio.com.au/blog' },
       ]} />
-      <div className="max-w-[1080px] mx-auto">
-        <AnimatedSection>
-          <span className="text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em]">Insights</span>
-          <h1 className="font-[Satoshi] text-[2.5rem] md:text-[3rem] font-700 mt-3 mb-4">Blog</h1>
-          <p className="text-[1.05rem] text-[#A1A1AA] leading-relaxed mb-12 max-w-[600px]">
-            Strategy, design, and automation insights for startups building bold brands and smart platforms.
-          </p>
-        </AnimatedSection>
+      <PageHero
+        tag="Insights"
+        title={<>Notes from <Em>the build bench.</Em></>}
+        sub="Strategy, design, and automation insights for startups building bold brands and smart platforms."
+      />
+      <div className="max-w-[1160px] mx-auto px-6">
 
         {posts.length === 0 ? (
           <AnimatedSection>
             <p className="text-[#71717A]">No posts yet. Check back soon.</p>
           </AnimatedSection>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {posts.map((post, i) => (
               <AnimatedSection key={post.id} delay={i * 0.06}>
                 <Link to={`/blog/${post.slug}`} className="block group h-full">
-                  <div className="flex flex-col h-full bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden transition-all hover:border-white/[0.12] hover:shadow-lg">
+                  <Card className="flex flex-col h-full overflow-hidden">
                     <div className="relative aspect-[16/9] overflow-hidden bg-[#0E0E0E]">
                       {post.cover_image ? (
                         <img
@@ -76,7 +75,7 @@ export default function Blog() {
                       <h2 className="font-[Satoshi] text-[1.05rem] md:text-[1.15rem] font-700 text-[#FAFAFA] leading-snug group-hover:text-[#FB5005] transition-colors">{post.title}</h2>
                       <p className="text-[0.85rem] text-[#A1A1AA] leading-relaxed line-clamp-2">{post.excerpt}</p>
                     </div>
-                  </div>
+                  </Card>
                 </Link>
               </AnimatedSection>
             ))}

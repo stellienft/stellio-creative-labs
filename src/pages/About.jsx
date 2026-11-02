@@ -2,6 +2,7 @@ import React from 'react'
 import AnimatedSection from '../components/AnimatedSection'
 import TextReveal from '../components/TextReveal'
 import LogoCarousel from '../components/LogoCarousel'
+import { Em, PageHero, SecHead, Card, IconChip } from '../components/ui'
 import { WebPageSchema, BreadcrumbSchema } from '../components/JsonLd'
 
 const creds = [
@@ -36,31 +37,18 @@ export default function About() {
         { name: 'About', url: 'https://stellio.com.au/about' },
       ]} />
       {/* Page Hero */}
-      <section className="pt-[140px] pb-20 text-center">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection>
-            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">
-              About
-            </span>
-            <TextReveal>
-              <h1 className="font-[Satoshi] text-[clamp(2rem,5vw,3.6rem)] font-700 leading-[1.05] mb-6">
-                Built by an entrepreneur<br />
-                <span className="gradient-text">who's been in your shoes.</span>
-              </h1>
-            </TextReveal>
-            <p className="text-[1.05rem] text-[#A1A1AA] max-w-[600px] mx-auto">
-              Stellio Koutsis. Designer, developer, and founder. 15 years building brands, platforms, and companies.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
+      <PageHero
+        tag="About"
+        title={<>Built by an entrepreneur <Em>who's been in your shoes.</Em></>}
+        sub="Stellio Koutsis. Designer, developer, and founder. 15 years building brands, platforms, and companies."
+      />
 
       {/* Bio */}
-      <section className="py-[80px] bg-[#0E0E0E]">
-        <div className="max-w-[1100px] mx-auto px-6">
+      <section className="py-[80px] bg-[#0E0E0E] border-y border-white/[0.07]">
+        <div className="max-w-[1160px] mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <AnimatedSection>
-              <div className="bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden min-h-[400px] flex items-center justify-center">
+              <div className="bg-[#111111] border border-white/[0.07] rounded-[18px] overflow-hidden min-h-[400px] flex items-center justify-center">
                 <img
                   src="/stellio.jpg"
                   alt="Stellio Koutsis"
@@ -69,8 +57,8 @@ export default function About() {
               </div>
             </AnimatedSection>
             <AnimatedSection delay={0.15}>
-              <h2 className="font-[Satoshi] text-[1.8rem] font-700 mb-6">
-                15 years. 300+ clients.<br /><span className="gradient-text">Still hands-on.</span>
+              <h2 className="font-[Satoshi] text-[clamp(1.9rem,3.4vw,2.6rem)] font-900 tracking-[-0.03em] leading-[1.06] mb-6">
+                15 years. 300+ clients. <Em>Still hands-on.</Em>
               </h2>
               <p className="text-[1rem] text-[#A1A1AA] leading-relaxed mb-5">
                 I am <strong className="text-[#FAFAFA]">Stellio Koutsis</strong>. For over 15 years I have been
@@ -108,33 +96,31 @@ export default function About() {
 
       {/* Client logos */}
       <section className="py-[80px] bg-[#0E0E0E]">
-        <div className="max-w-[1100px] mx-auto px-6">
+        <div className="max-w-[1160px] mx-auto px-6">
           <LogoCarousel />
         </div>
       </section>
 
       {/* Credentials */}
       <section className="py-[100px]">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection className="text-center mb-16">
-            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Credentials</span>
-            <TextReveal>
-              <h2 className="font-[Satoshi] text-[clamp(1.6rem,3.5vw,2.2rem)] font-700">
-                Proof, not promises.
-              </h2>
-            </TextReveal>
+        <div className="max-w-[1160px] mx-auto px-6">
+          <AnimatedSection>
+            <SecHead
+              tag="Credentials"
+              title={<>Proof, <Em>not promises.</Em></>}
+            />
           </AnimatedSection>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {creds.map((c, i) => (
               <AnimatedSection key={c.title} delay={i * 0.08}>
-                <div className="bg-[#111111] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.12] transition-all duration-300 group">
-                  <div className="w-10 h-10 rounded-lg bg-[#FB5005]/[0.08] border border-[#FB5005]/[0.15] flex items-center justify-center mb-4 group-hover:bg-[#FB5005]/[0.15] transition-colors">
-                    <svg className="w-[18px] h-[18px] text-[#FB5005]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: iconPaths[c.icon] }} />
-                  </div>
-                  <h4 className="text-[0.95rem] font-600 mb-1">{c.title}</h4>
-                  <span className="text-[0.8rem] text-[#71717A]">{c.desc}</span>
-                </div>
+                <Card className="p-6 h-full">
+                  <IconChip>
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: iconPaths[c.icon] }} />
+                  </IconChip>
+                  <h4 className="font-[Satoshi] text-[1rem] font-700 tracking-[-0.01em] mb-1">{c.title}</h4>
+                  <span className="text-[0.82rem] text-[#71717A]">{c.desc}</span>
+                </Card>
               </AnimatedSection>
             ))}
           </div>

@@ -1,10 +1,8 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import Hero from '../components/Hero'
-import LogoCarousel from '../components/LogoCarousel'
 import AnimatedSection from '../components/AnimatedSection'
-import TextReveal from '../components/TextReveal'
+import { Em, SecHead, SecTag, BtnPrimary, BtnGhost, Card, IconChip } from '../components/ui'
 import { HomePageSchema, BreadcrumbSchema } from '../components/JsonLd'
 
 const services = [
@@ -49,43 +47,97 @@ const services = [
 const projects = [
   {
     name: 'Green Funding',
-    tagline: 'Sustainable Energy Finance Specialists',
-    desc: 'Custom platform built for installers to generate proposals for clients. Advanced automation, API connections, Supabase and AI analytics.',
+    tag: 'Platform Build',
+    desc: 'Custom platform for installers to generate proposals. Advanced automation, API connections, Supabase and AI analytics.',
     metrics: ['40% less admin', '3x engagement'],
-    gradient: 'from-[#1a2e1a] to-[#0f1f0f]',
-    image: '/work/logo-greenfunding.png',
+    image: '/client-logos/logo-greenfunding.png',
   },
   {
     name: 'PropCheck',
-    tagline: 'Property Inspection Technology',
+    tag: 'Dashboard + Automation',
     desc: 'Brand, custom dashboard, automated reporting, CRM sync.',
     metrics: ['60% less reporting', '2.5x satisfaction'],
-    gradient: 'from-[#1a1a2e] to-[#0f0f1f]',
-    image: '/work/logo-propcheck.png',
+    image: '/client-logos/logo-propcheck.png',
   },
   {
     name: 'Queensland Carrying',
-    tagline: 'Heavy Haulage in Australia',
-    desc: 'Custom branding and website build. Custom job request form with advanced automation and AI integration. Custom pricing and distance tooling.',
+    tag: 'Brand + Website',
+    desc: 'Custom branding and website build. Job request form with advanced automation and AI integration.',
     metrics: ['200% more jobs', '80% less admin'],
-    gradient: 'from-[#2e1a1a] to-[#1f0f0f]',
-    image: '/work/logo-qldcarrying.png',
+    image: '/client-logos/logo-qldcarrying.png',
   },
   {
     name: 'Southside Catering',
-    tagline: 'E-Commerce Webdesign Redesign',
+    tag: 'E-commerce Refresh',
     desc: 'Landing page redesign, brand refresh. Modern e-commerce experience with a fresh visual identity.',
-    metrics: ['Brand refresh', 'Redesigned UX'],
-    gradient: 'from-[#2e1a2e] to-[#1f0f1f]',
-    image: '/work/logo-southside.png',
+    metrics: ['5.0 on Google'],
+    image: '/client-logos/logo-southside.png',
   },
 ]
 
+const apps = [
+  {
+    icon: '/apps/logo-parcel.png',
+    name: 'Logo Parcel',
+    badge: 'Free macOS app',
+    tagline: 'Logo packaging, automated',
+    desc: 'Turns finished logo artwork into a client-ready package: formats, colour modes, organised files and a delivery guide. Exports SVG, PNG, JPG, PDF, EPS and AI.',
+    links: [
+      { label: 'Download beta', href: 'https://github.com/stellienft/logo-parcel/releases/tag/v0.5.1-beta.1', primary: true },
+      { label: 'Source on GitHub', href: 'https://github.com/stellienft/logo-parcel' },
+    ],
+  },
+  {
+    icon: '/apps/bijou.png',
+    name: 'Bijou Agent',
+    badge: 'AI Agent Platform',
+    tagline: 'Build your own agent team',
+    desc: 'Give each agent a name, a colour and a job: they research, write, plan and get things done, on your phone or computer.',
+    links: [{ label: 'Visit Bijou Agent', href: 'https://bijouagent.xyz', primary: true }],
+  },
+  {
+    icon: '/apps/ares.png',
+    name: 'Ares Fitness',
+    badge: 'iOS - Coming Soon',
+    tagline: 'AI strength coach for iPhone',
+    desc: 'Adaptive training programs, set-by-set logging, AI coaching, meal plans and progress tracking. Built end to end for iPhone.',
+    links: [{ label: 'Visit aresfitness.xyz', href: 'https://aresfitness.xyz', primary: true }],
+  },
+  {
+    icon: '/apps/hippius.png',
+    name: 'Hippius',
+    badge: 'Referral',
+    tagline: 'Decentralised cloud storage',
+    desc: 'S3-compatible storage on a blockchain-backed network. Fast, self-healing and pay-per-use. What I use for backups.',
+    links: [
+      { label: 'Try Hippius', href: 'https://console.hippius.com/login?ref=HIPPIUS17148345132862070510&src=stellio-website-9facc157', primary: true },
+      { label: 'Learn more', href: 'https://hippius.com' },
+    ],
+  },
+  {
+    icon: '/apps/saygm.png',
+    name: 'SayGM',
+    badge: 'Referral',
+    tagline: 'AI models below list price',
+    desc: 'An LLM gateway for Claude, GPT, Gemini and open models. Up to 70% cheaper, sealed in a verifiable enclave. Where I route my AI workloads.',
+    links: [
+      { label: 'Try SayGM', href: 'https://saygm.com/r/e9lbieta', primary: true },
+      { label: 'Learn more', href: 'https://saygm.com' },
+    ],
+  },
+]
+
+const workshopSteps = [
+  { num: '01', title: 'Teach Claude your voice', desc: 'Train Claude on your brand tone, writing style, and playbooks so every output sounds like you wrote it.' },
+  { num: '02', title: 'Build working automations', desc: 'Set up real workflows that handle research, content, client comms, and ops while you focus on growth.' },
+  { num: '03', title: 'Roll it out to your team', desc: 'Get a 30-day implementation plan so your whole team adopts AI confidently, with guardrails that keep data safe.' },
+]
+
 const processSteps = [
-  { num: '01', title: 'Discover', desc: 'We dig into your goals, audience, and pain points. No assumptions. Just clarity.' },
-  { num: '02', title: 'Design', desc: 'Rapid prototyping with AI-powered workflows and your constant feedback loop.' },
-  { num: '03', title: 'Build', desc: 'Custom development with modern frameworks. Performance, security, scale.' },
-  { num: '04', title: 'Automate', desc: 'Arclink AI agents, automations, and systems that work while you sleep.' },
+  { num: '01', title: 'Discover', desc: 'A free call to map your goals, your market, and what the system needs to do.' },
+  { num: '02', title: 'Design', desc: 'Identity, interface and messaging designed around conversion, not decoration.' },
+  { num: '03', title: 'Build', desc: 'Fast, clean builds on a modern stack. You see progress every week.' },
+  { num: '04', title: 'Automate', desc: 'AI and integrations wired in so the system keeps working after launch.' },
 ]
 
 const testimonials = [
@@ -97,13 +149,9 @@ const testimonials = [
   { text: 'Stellio is different. He actually delivers on what he promises, on time, with real results.', name: 'Rob J.', role: 'Director, BLNDL', initials: 'RJ' },
 ]
 
-function Star() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B" stroke="none">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  )
-}
+const arrowIcon = (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
+)
 
 export default function Home() {
   return (
@@ -112,418 +160,149 @@ export default function Home() {
       <BreadcrumbSchema items={[{ name: 'Home', url: 'https://stellio.com.au' }]} />
       <Hero />
 
-      {/* ========== CLAUDE WORKSHOP COMING SOON ========== */}
-      <section id="claude-workshop" className="py-[100px] relative overflow-hidden">
-        {/* Subtle glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#FB5005]/[0.04] rounded-full blur-[120px] pointer-events-none" />
-        <div className="max-w-[1100px] mx-auto px-6 relative z-10">
-          <AnimatedSection className="text-center mb-14 max-w-[700px] mx-auto">
-            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">
-              Coming Soon
-            </span>
-            <TextReveal>
-              <h2 className="font-[Satoshi] text-[clamp(1.8rem,4vw,2.8rem)] font-700 leading-[1.1] mb-5">
-                The Claude Workshop
-              </h2>
-            </TextReveal>
-            <p className="text-[1.05rem] text-[#A1A1AA] leading-relaxed">
-              A live, hands-on workshop where we build your business's AI system with you, on the call. No fluff. No theory. Just real systems, working, by the time you leave.
-            </p>
-          </AnimatedSection>
-
-          {/* What you'll learn grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-14">
-            {[
-              {
-                icon: (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                  </svg>
-                ),
-                title: 'Teach Claude your voice',
-                desc: 'Train Claude on your brand tone, writing style, and playbooks so every output sounds like you wrote it.',
-              },
-              {
-                icon: (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                  </svg>
-                ),
-                title: 'Build working automations',
-                desc: 'Set up real workflows that handle research, content, client comms, and ops while you focus on growth.',
-              },
-              {
-                icon: (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                ),
-                title: 'Roll it out to your team',
-                desc: 'Get a 30-day implementation plan so your whole team adopts AI confidently, with guardrails that keep data safe.',
-              },
-            ].map((item, i) => (
-              <AnimatedSection key={i} className="bg-[#111111] border border-white/[0.06] rounded-2xl p-7 hover:border-white/[0.12] transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-[#FB5005]/10 border border-[#FB5005]/20 flex items-center justify-center text-[#FB5005] mb-5">
-                  {item.icon}
+      {/* ========== CLAUDE WORKSHOP ========== */}
+      <section id="claude-workshop" className="py-[90px] bg-gradient-to-b from-[#0E0E0E] to-[#0A0A0A] border-y border-white/[0.07]">
+        <div className="max-w-[1160px] mx-auto px-6">
+          <AnimatedSection>
+            <div className="border border-[#FB5005]/25 rounded-3xl p-8 md:p-11 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 items-center bg-[radial-gradient(120%_140%_at_20%_0%,rgba(251,80,5,0.09),transparent_55%)] bg-[#111111]">
+              <div>
+                <SecTag>The Claude Workshop</SecTag>
+                <h2 className="font-[Satoshi] font-900 text-[clamp(2rem,4vw,2.9rem)] leading-[1.06] tracking-[-0.035em] mt-4">
+                  Your business, <Em>running on AI.</Em>
+                </h2>
+                <p className="mt-4 text-[0.97rem] leading-[1.65] text-[#A1A1AA]">
+                  A live, hands-on workshop where we build your business's AI system with you, on the call. No fluff. No theory. Just real systems, working, by the time you leave.
+                </p>
+                <div className="mt-7">
+                  <BtnPrimary href="https://waitlist.ai.stellio.com.au" target="_blank" rel="noopener">Join the Waitlist</BtnPrimary>
                 </div>
-                <h3 className="text-[1rem] font-700 mb-2">{item.title}</h3>
-                <p className="text-[0.88rem] text-[#A1A1AA] leading-relaxed">{item.desc}</p>
-              </AnimatedSection>
-            ))}
-          </div>
-
-          {/* More topics covered */}
-          <AnimatedSection className="text-center mb-10">
-            <div className="flex flex-wrap gap-2 justify-center max-w-[700px] mx-auto">
-              {[
-                'Business AI audit',
-                'Prompting that works',
-                'Research you can trust',
-                'Digital filing cabinet',
-                'Connectors & data',
-                'Skills & playbooks',
-                '30-day rollout plan',
-              ].map((tag) => (
-                <span key={tag} className="text-[0.75rem] font-600 text-[#A1A1AA] bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-lg">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </AnimatedSection>
-
-          {/* CTA */}
-          <AnimatedSection className="text-center">
-            <p className="text-[0.92rem] text-[#71717A] mb-5">The next cohort is coming. Secure your spot on the waitlist.</p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <a
-                href="https://waitlist.ai.stellio.com.au"
-                target="_blank"
-                rel="noopener"
-                className="group relative inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#FB5005] text-white text-[0.88rem] font-600 overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(251,80,5,0.25)]"
-              >
-                Join the waitlist
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </a>
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {workshopSteps.map((s) => (
+                  <div key={s.num} className="flex gap-4 p-4 border border-white/[0.07] rounded-[14px] bg-white/[0.02]">
+                    <span className="font-[Playfair_Display] italic text-[#FB5005] text-[1.25rem] w-7 shrink-0 leading-snug">{s.num}</span>
+                    <div>
+                      <h4 className="font-[Satoshi] text-[0.97rem] font-700">{s.title}</h4>
+                      <p className="text-[0.82rem] text-[#A1A1AA] mt-1 leading-[1.55]">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </AnimatedSection>
         </div>
       </section>
 
       {/* ========== SERVICES ========== */}
-      <section id="services" className="py-[120px] bg-[#0E0E0E]">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection className="mb-20 max-w-[600px]">
-            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">
-              What I Do
-            </span>
-            <TextReveal>
-              <h2 className="font-[Satoshi] text-[clamp(1.8rem,4vw,2.8rem)] font-700 leading-[1.1] mb-5">
-                From brand to bot.<br />
-                <span className="gradient-text">Everything in between.</span>
-              </h2>
-            </TextReveal>
-            <p className="text-[1.05rem] text-[#A1A1AA] leading-relaxed">
-              Most agencies design things. I design, build, and automate the systems that make your business run.
-            </p>
+      <section id="services" className="py-[110px]">
+        <div className="max-w-[1160px] mx-auto px-6">
+          <AnimatedSection>
+            <SecHead
+              tag="Services"
+              title={<>From brand to bot. <Em>Everything in between.</Em></>}
+              sub="Most agencies design things. I design, build, and automate the systems that make your business run."
+            />
           </AnimatedSection>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {services.map((s, i) => (
-              <AnimatedSection key={s.title} delay={i * 0.08}>
-                <motion.div
-                  whileHover={{ y: -6, transition: { duration: 0.3 } }}
-                  className="group bg-[#111111] border border-white/[0.06] rounded-2xl p-8 card-shine hover:border-white/[0.12] transition-colors duration-500 h-full flex flex-col"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[#FB5005]/[0.08] border border-[#FB5005]/[0.15] flex items-center justify-center mb-6 transition-all duration-300 group-hover:bg-[#FB5005]/[0.15] group-hover:border-[#FB5005]/30">
-                    <svg className="w-5 h-5 text-[#FB5005]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: s.icon }} />
-                  </div>
-                  <h3 className="font-[Satoshi] text-[1.1rem] font-600 mb-3">{s.title}</h3>
-                  <p className="text-[0.9rem] text-[#A1A1AA] leading-relaxed mb-5 flex-1">{s.desc}</p>
-                  <span className="inline-block text-[0.78rem] font-600 text-[#71717A] bg-[#0A0A0A] px-3 py-1.5 rounded-md border border-white/[0.06] w-fit">
+              <AnimatedSection key={s.title} delay={i * 0.06}>
+                <Card className="p-7 h-full flex flex-col">
+                  <IconChip>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: s.icon }} />
+                  </IconChip>
+                  <h3 className="font-[Satoshi] text-[1.15rem] font-700 tracking-[-0.015em]">{s.title}</h3>
+                  <p className="mt-2 text-[0.88rem] leading-[1.6] text-[#A1A1AA] flex-1">{s.desc}</p>
+                  <span className="mt-5 inline-block text-[0.78rem] font-600 text-[#71717A] bg-[#0A0A0A] px-3 py-1.5 rounded-md border border-white/[0.06] w-fit">
                     {s.price}
                   </span>
-                </motion.div>
+                </Card>
               </AnimatedSection>
             ))}
           </div>
-
-          <div className="mt-14 text-center">
-            <Link to="/services" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/[0.12] text-[0.85rem] font-600 text-[#FAFAFA] hover:border-[#FB5005] hover:text-[#FB5005] transition-all duration-300">
-              See Full Pricing
-            </Link>
-          </div>
+          <AnimatedSection className="mt-12 text-center">
+            <BtnGhost to="/services">See Full Pricing</BtnGhost>
+          </AnimatedSection>
         </div>
       </section>
 
       {/* ========== WORK ========== */}
-      <section className="py-[120px]">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection className="flex flex-wrap items-end justify-between gap-4 mb-16">
-            <div>
-              <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Our Work</span>
-              <TextReveal>
-                <h2 className="font-[Satoshi] text-[clamp(1.8rem,4vw,2.8rem)] font-700 leading-[1.1]">
-                  Real results.<br /><span className="gradient-text">Real businesses.</span>
-                </h2>
-              </TextReveal>
-            </div>
-            <Link to="/work" className="px-5 py-2.5 rounded-lg border border-white/[0.12] text-[0.85rem] font-600 text-[#FAFAFA] hover:border-[#FB5005] hover:text-[#FB5005] transition-all duration-300 mb-1">
-              View All
+      <section className="pb-[110px]">
+        <div className="max-w-[1160px] mx-auto px-6">
+          <AnimatedSection className="flex flex-wrap items-end justify-between gap-4">
+            <SecHead
+              tag="Our Work"
+              title={<>Real results. <Em>Real businesses.</Em></>}
+              className="mb-0"
+            />
+            <Link to="/work" className="mb-2 px-5 py-2.5 rounded-xl border border-white/[0.14] text-[0.85rem] font-600 text-[#FAFAFA] hover:border-white/30 transition-all">
+              View All Work
             </Link>
           </AnimatedSection>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-14">
             {projects.map((p, i) => (
-              <AnimatedSection key={p.name} delay={i * 0.1}>
-                <motion.div
-                  whileHover={{ y: -4 }}
-                  className="group bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.12] transition-all duration-500"
-                >
-                  <div className="h-[180px] relative overflow-hidden bg-[#0E0E0E] flex items-center justify-center p-10">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient} opacity-60`} />
-                    {p.image && (
-                      <img src={p.image} alt={p.name} loading="lazy" className="relative max-h-full max-w-[75%] object-contain group-hover:scale-[1.05] transition-transform duration-500" />
-                    )}
+              <AnimatedSection key={p.name} delay={i * 0.08}>
+                <Card className="overflow-hidden h-full">
+                  <div className="h-[170px] flex items-center justify-center bg-gradient-to-br from-[#141414] to-[#0D0D0D] border-b border-white/[0.07]">
+                    <img src={p.image} alt={p.name} loading="lazy" className="max-h-[72px] max-w-[70%] object-contain" />
                   </div>
                   <div className="p-6">
-                    <h3 className="font-[Satoshi] text-[1.1rem] font-600 mb-1">{p.name}</h3>
-                    <p className="text-[0.78rem] text-[#71717A] mb-3">{p.tagline}</p>
-                    <p className="text-[0.88rem] text-[#A1A1AA] mb-4 leading-relaxed">{p.desc}</p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="text-[0.72rem] font-600 text-[#FB5005] uppercase tracking-[0.06em] mb-2">{p.tag}</div>
+                    <h3 className="font-[Satoshi] text-[1.12rem] font-700 tracking-[-0.015em]">{p.name}</h3>
+                    <p className="mt-2 text-[0.86rem] leading-[1.6] text-[#A1A1AA]">{p.desc}</p>
+                    <div className="flex flex-wrap gap-2 mt-4">
                       {p.metrics.map(m => (
-                        <span key={m} className="text-[0.72rem] font-600 text-[#FB5005] bg-[#FB5005]/[0.08] px-2.5 py-1 rounded-md">
+                        <span key={m} className="text-[0.75rem] font-600 text-[#4ADE80] bg-[#22C55E]/[0.09] border border-[#22C55E]/[0.18] px-3 py-1 rounded-full">
                           {m}
                         </span>
                       ))}
                     </div>
                   </div>
-                </motion.div>
+                </Card>
               </AnimatedSection>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ========== APPS BUILT BY STELLIO ========== */}
-      <section className="py-[100px]">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection className="mb-10 max-w-[600px]">
-            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">
-              Apps Built By Stellio
-            </span>
-            <h2 className="font-[Satoshi] text-[clamp(1.6rem,3vw,2.2rem)] font-700 leading-[1.15] mb-3">
-              Tools I build and tools I use daily to increase my productivity.
-            </h2>
+      {/* ========== APPS GRID ========== */}
+      <section className="pb-[110px]">
+        <div className="max-w-[1160px] mx-auto px-6">
+          <AnimatedSection>
+            <SecHead
+              tag="Apps Built By Stellio"
+              title={<>Tools I build. <Em>Tools I use daily.</Em></>}
+              sub="Small products and platforms that make me faster. Some free, some client-grade, all built in-house."
+            />
           </AnimatedSection>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {/* Logo Parcel */}
-            <AnimatedSection delay={0}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="group bg-[#111111] border border-white/[0.06] rounded-2xl p-7 hover:border-white/[0.12] transition-all duration-500 h-full flex flex-col"
-              >
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <img
-                    src="/apps/logo-parcel.png"
-                    alt="Logo Parcel app icon"
-                    className="w-14 h-14 rounded-xl shadow-lg"
-                  />
-                  <span className="text-[0.68rem] font-600 uppercase tracking-wider text-[#71717A] bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded-md">
-                    Free & Open Source
-                  </span>
-                </div>
-                <h3 className="font-[Satoshi] text-[1.05rem] font-700 mb-1.5">Logo Parcel</h3>
-                <p className="text-[0.78rem] text-[#FB5005] mb-3">macOS app - Apple silicon, macOS 13+</p>
-                <p className="text-[0.86rem] text-[#A1A1AA] leading-relaxed mb-5 flex-1">
-                  Turns finished logo artwork into a client-ready package: formats, colour modes, organised files and an HTML delivery guide. Exports SVG, PNG, JPG, PDF, EPS and AI. Everything stays on your Mac.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
-                  <a
-                    href="https://github.com/stellienft/logo-parcel/releases/tag/v0.5.1-beta.1"
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#FB5005] hover:text-[#E55A1F] transition-colors"
-                  >
-                    Download beta
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
-                  </a>
-                  <a
-                    href="https://github.com/stellienft/logo-parcel"
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#71717A] hover:text-[#FAFAFA] transition-colors"
-                  >
-                    Source on GitHub
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
-                  </a>
-                </div>
-              </motion.div>
-            </AnimatedSection>
-
-            {/* Bijou Agent */}
-            <AnimatedSection delay={0.05}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="group bg-[#111111] border border-white/[0.06] rounded-2xl p-7 hover:border-white/[0.12] transition-all duration-500 h-full flex flex-col"
-              >
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <img
-                    src="/apps/bijou.png"
-                    alt="Bijou Agent app icon"
-                    className="w-14 h-14 rounded-xl shadow-lg"
-                  />
-                  <span className="text-[0.68rem] font-600 uppercase tracking-wider text-[#71717A] bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded-md">
-                    AI Agent Platform
-                  </span>
-                </div>
-                <h3 className="font-[Satoshi] text-[1.05rem] font-700 mb-1.5">Bijou Agent</h3>
-                <p className="text-[0.78rem] text-[#FB5005] mb-3">Build your own agent team</p>
-                <p className="text-[0.86rem] text-[#A1A1AA] leading-relaxed mb-5 flex-1">
-                  Build your own team of AI agents. Give each one a name, a colour and a job: they research, write, plan and get things done, on your phone or computer.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
-                  <a
-                    href="https://bijouagent.xyz"
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#FB5005] hover:text-[#E55A1F] transition-colors"
-                  >
-                    Visit Bijou Agent
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
-                  </a>
-                </div>
-              </motion.div>
-            </AnimatedSection>
-
-            {/* Ares Fitness */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {apps.map((a, i) => (
+              <AnimatedSection key={a.name} delay={i * 0.06}>
+                <Card className="p-7 h-full flex flex-col">
+                  <div className="flex items-start justify-between gap-4 mb-5">
+                    <img src={a.icon} alt={`${a.name} icon`} loading="lazy" className="w-[46px] h-[46px] rounded-[13px] shadow-lg" />
+                    <span className="text-[0.66rem] font-600 uppercase tracking-[0.08em] text-[#71717A] bg-white/[0.04] border border-white/[0.07] px-2.5 py-1 rounded-full">
+                      {a.badge}
+                    </span>
+                  </div>
+                  <h3 className="font-[Satoshi] text-[1.1rem] font-700 tracking-[-0.015em]">{a.name}</h3>
+                  <p className="text-[0.8rem] text-[#FB5005] font-500 mt-0.5">{a.tagline}</p>
+                  <p className="mt-2.5 text-[0.86rem] leading-[1.6] text-[#A1A1AA] flex-1">{a.desc}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 pt-4 mt-4 border-t border-white/[0.06]">
+                    {a.links.map(l => (
+                      <a key={l.label} href={l.href} target="_blank" rel="noopener"
+                        className={`inline-flex items-center gap-1.5 text-[0.8rem] font-600 transition-colors ${l.primary ? 'text-[#FB5005] hover:text-[#E5470A]' : 'text-[#71717A] hover:text-[#FAFAFA]'}`}>
+                        {l.label} {arrowIcon}
+                      </a>
+                    ))}
+                  </div>
+                </Card>
+              </AnimatedSection>
+            ))}
+            {/* Placeholder */}
             <AnimatedSection delay={0.1}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="group bg-[#111111] border border-white/[0.06] rounded-2xl p-7 hover:border-white/[0.12] transition-all duration-500 h-full flex flex-col"
-              >
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <img
-                    src="/apps/ares.png"
-                    alt="Ares Fitness app icon"
-                    className="w-14 h-14 rounded-xl shadow-lg"
-                  />
-                  <span className="text-[0.68rem] font-600 uppercase tracking-wider text-[#71717A] bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded-md">
-                    AI Fitness App
-                  </span>
-                </div>
-                <h3 className="font-[Satoshi] text-[1.05rem] font-700 mb-1.5">Ares Fitness</h3>
-                <p className="text-[0.78rem] text-[#FB5005] mb-3">AI strength coach for iPhone</p>
-                <p className="text-[0.86rem] text-[#A1A1AA] leading-relaxed mb-5 flex-1">
-                  Adaptive training programs, set-by-set logging, AI coaching, meal plans and progress tracking. Built end to end for iPhone. Coming soon to iOS.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
-                  <a
-                    href="https://aresfitness.xyz"
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#FB5005] hover:text-[#E55A1F] transition-colors"
-                  >
-                    Visit aresfitness.xyz
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
-                  </a>
-                </div>
-              </motion.div>
-            </AnimatedSection>
-
-            {/* Hippius */}
-            <AnimatedSection delay={0.05}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="group bg-[#111111] border border-white/[0.06] rounded-2xl p-7 hover:border-white/[0.12] transition-all duration-500 h-full flex flex-col"
-              >
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <img
-                    src="/apps/hippius.png"
-                    alt="Hippius logo"
-                    className="w-14 h-14 rounded-xl shadow-lg"
-                  />
-                  <span className="text-[0.68rem] font-600 uppercase tracking-wider text-[#71717A] bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded-md">
-                    Referral Link
-                  </span>
-                </div>
-                <h3 className="font-[Satoshi] text-[1.05rem] font-700 mb-1.5">Hippius</h3>
-                <p className="text-[0.78rem] text-[#FB5005] mb-3">Decentralised cloud storage</p>
-                <p className="text-[0.86rem] text-[#A1A1AA] leading-relaxed mb-5 flex-1">
-                  S3-compatible storage on a blockchain-backed network - fast, self-healing and pay-per-use with everything recorded on-chain. What I use for decentralised file storage and backups.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
-                  <a
-                    href="https://console.hippius.com/login?ref=HIPPIUS17148345132862070510&src=stellio-website-9facc157"
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#FB5005] hover:text-[#E55A1F] transition-colors"
-                  >
-                    Try Hippius
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
-                  </a>
-                  <a
-                    href="https://hippius.com"
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#71717A] hover:text-[#FAFAFA] transition-colors"
-                  >
-                    Learn more
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
-                  </a>
-                </div>
-              </motion.div>
-            </AnimatedSection>
-
-            {/* SayGM */}
-            <AnimatedSection delay={0.1}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="group bg-[#111111] border border-white/[0.06] rounded-2xl p-7 hover:border-white/[0.12] transition-all duration-500 h-full flex flex-col"
-              >
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <img
-                    src="/apps/saygm.png"
-                    alt="SayGM logo"
-                    className="w-14 h-14 rounded-xl shadow-lg"
-                  />
-                  <span className="text-[0.68rem] font-600 uppercase tracking-wider text-[#71717A] bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded-md">
-                    Referral Link
-                  </span>
-                </div>
-                <h3 className="font-[Satoshi] text-[1.05rem] font-700 mb-1.5">SayGM</h3>
-                <p className="text-[0.78rem] text-[#FB5005] mb-3">AI models below list price</p>
-                <p className="text-[0.86rem] text-[#A1A1AA] leading-relaxed mb-5 flex-1">
-                  An LLM gateway for Claude, GPT, Gemini and open models - up to 70% cheaper than list price, sealed in a verifiable enclave. One base URL works with Cursor, Claude Code and the AI SDK. Where I route my AI workloads.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
-                  <a
-                    href="https://saygm.com/r/e9lbieta"
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#FB5005] hover:text-[#E55A1F] transition-colors"
-                  >
-                    Try SayGM
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
-                  </a>
-                  <a
-                    href="https://saygm.com"
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-600 text-[#71717A] hover:text-[#FAFAFA] transition-colors"
-                  >
-                    Learn more
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg>
-                  </a>
-                </div>
-              </motion.div>
-            </AnimatedSection>
-
-            {/* Placeholder for future apps */}
-            <AnimatedSection delay={0.08}>
-              <div className="bg-[#0E0E0E] border border-dashed border-white/[0.08] rounded-2xl p-7 h-full flex flex-col items-center justify-center text-center min-h-[260px]">
-                <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4 text-[#71717A]">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <div className="bg-[#0E0E0E] border border-dashed border-white/[0.08] rounded-[18px] p-7 h-full flex flex-col items-center justify-center text-center min-h-[260px]">
+                <div className="w-11 h-11 rounded-xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center mb-4 text-[#71717A]">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </div>
                 <p className="text-[0.88rem] font-600 text-[#71717A] mb-1">More in the works</p>
                 <p className="text-[0.78rem] text-[#71717A]/70">Small tools I build for myself usually end up here.</p>
@@ -534,28 +313,22 @@ export default function Home() {
       </section>
 
       {/* ========== PROCESS ========== */}
-      <section className="py-[120px] bg-[#0E0E0E]">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection className="text-center mb-20 max-w-[600px] mx-auto">
-            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">How It Works</span>
-            <TextReveal>
-              <h2 className="font-[Satoshi] text-[clamp(1.8rem,4vw,2.8rem)] font-700 leading-[1.1]">
-                Simple process.<br /><span className="gradient-text">Powerful outcomes.</span>
-              </h2>
-            </TextReveal>
+      <section className="pb-[110px]">
+        <div className="max-w-[1160px] mx-auto px-6">
+          <AnimatedSection>
+            <SecHead
+              tag="Process"
+              title={<>Simple process. <Em>Powerful outcomes.</Em></>}
+            />
           </AnimatedSection>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {processSteps.map((step, i) => (
-              <AnimatedSection key={step.num} delay={i * 0.1}>
-                <div className="relative bg-[#111111] border border-white/[0.06] rounded-2xl p-8 overflow-hidden group hover:border-white/[0.12] transition-all duration-500">
-                  <span className="absolute top-3 right-4 font-[Satoshi] text-[4.5rem] font-900 text-white/[0.02] leading-none select-none">
-                    {step.num}
-                  </span>
-                  <span className="relative font-[Satoshi] text-[0.85rem] font-700 text-[#FB5005] mb-4 block">{step.num}</span>
-                  <h3 className="relative font-[Satoshi] text-[1.1rem] font-600 mb-3">{step.title}</h3>
-                  <p className="relative text-[0.88rem] text-[#A1A1AA] leading-relaxed">{step.desc}</p>
-                  <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#FB5005] to-transparent w-0 group-hover:w-full transition-all duration-700 ease-out" />
+              <AnimatedSection key={step.num} delay={i * 0.08}>
+                <div className="relative pl-6 py-2 border-l-2 border-white/[0.07]">
+                  <span className="absolute -left-[2px] top-2 w-[2px] h-[34px] bg-[#FB5005]" />
+                  <span className="font-[Playfair_Display] italic text-[#FB5005] text-[2.5rem] leading-none">{step.num}</span>
+                  <h3 className="font-[Satoshi] text-[1.15rem] font-700 mt-3.5 tracking-[-0.015em]">{step.title}</h3>
+                  <p className="text-[0.85rem] text-[#A1A1AA] leading-[1.6] mt-2">{step.desc}</p>
                 </div>
               </AnimatedSection>
             ))}
@@ -564,38 +337,30 @@ export default function Home() {
       </section>
 
       {/* ========== TESTIMONIALS ========== */}
-      <section className="py-[120px]">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection className="text-center mb-20 max-w-[600px] mx-auto">
-            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Testimonials</span>
-            <TextReveal>
-              <h2 className="font-[Satoshi] text-[clamp(1.8rem,4vw,2.8rem)] font-700 leading-[1.1]">
-                Don't take my word for it.
-              </h2>
-            </TextReveal>
+      <section className="pb-[110px]">
+        <div className="max-w-[1160px] mx-auto px-6">
+          <AnimatedSection>
+            <SecHead
+              tag="Testimonials"
+              title={<>Don't take <Em>my word for it.</Em></>}
+            />
           </AnimatedSection>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {testimonials.map((t, i) => (
-              <AnimatedSection key={t.name} delay={i * 0.06}>
-                <motion.div
-                  whileHover={{ y: -4 }}
-                  className="bg-[#111111] border border-white/[0.06] rounded-2xl p-7 h-full flex flex-col hover:border-white/[0.1] transition-colors duration-300"
-                >
-                  <div className="flex gap-1 mb-5">
-                    {[...Array(5)].map((_, j) => <Star key={j} />)}
-                  </div>
-                  <p className="text-[0.92rem] text-[#A1A1AA] leading-relaxed mb-6 flex-1">"{t.text}"</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#0A0A0A] border border-white/[0.08] flex items-center justify-center text-[0.72rem] font-700 text-[#FB5005]">
+              <AnimatedSection key={t.name} delay={i * 0.05}>
+                <Card className="p-7 h-full flex flex-col">
+                  <div className="text-[#FB5005] tracking-[3px] text-[0.82rem] mb-4">★★★★★</div>
+                  <p className="text-[0.92rem] leading-[1.7] text-[#FAFAFA] flex-1">"{t.text}"</p>
+                  <div className="flex items-center gap-3 mt-5">
+                    <div className="w-[38px] h-[38px] rounded-full bg-[#FB5005]/10 flex items-center justify-center text-[0.82rem] font-700 text-[#FB5005]">
                       {t.initials}
                     </div>
                     <div>
-                      <h4 className="text-[0.88rem] font-600">{t.name}</h4>
-                      <span className="text-[0.78rem] text-[#71717A]">{t.role}</span>
+                      <h4 className="text-[0.85rem] font-600">{t.name}</h4>
+                      <span className="text-[0.75rem] text-[#71717A]">{t.role}</span>
                     </div>
                   </div>
-                </motion.div>
+                </Card>
               </AnimatedSection>
             ))}
           </div>
@@ -603,33 +368,19 @@ export default function Home() {
       </section>
 
       {/* ========== CTA ========== */}
-      <section className="py-[100px]">
-        <div className="max-w-[1100px] mx-auto px-6">
+      <section className="relative py-[130px] overflow-hidden text-center">
+        <div className="absolute -bottom-[320px] left-1/2 -translate-x-1/2 w-[1000px] h-[640px] bg-[radial-gradient(closest-side,rgba(251,80,5,0.16),transparent)] pointer-events-none" />
+        <div className="max-w-[1160px] mx-auto px-6 relative">
           <AnimatedSection>
-            <div className="relative bg-[#0E0E0E] border border-white/[0.06] rounded-3xl p-12 md:p-16 text-center overflow-hidden">
-              {/* Background glow */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#FB5005]/[0.03] rounded-full blur-[120px] pointer-events-none" />
-              
-              <div className="relative z-10 max-w-[600px] mx-auto">
-                <TextReveal>
-                  <h2 className="font-[Satoshi] text-[clamp(1.8rem,4vw,2.6rem)] font-700 mb-4">
-                    Ready to build your<br className="hidden md:inline" />{' '}
-                    <span className="gradient-text">Business OS?</span>
-                  </h2>
-                </TextReveal>
-                <p className="text-[1.05rem] text-[#A1A1AA] mb-10">
-                  Book a free 15-minute discovery call. No pressure, no pitch, just clarity.
-                </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                  <Link to="/contact" className="group relative inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#FB5005] text-white text-[0.88rem] font-600 overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(251,80,5,0.25)]">
-                    <span className="relative z-10">Book Discovery Call</span>
-                    <svg className="relative z-10 w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </Link>
-                  <Link to="/ai-audit" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.12] text-[#FAFAFA] text-[0.88rem] font-600 hover:border-[#FB5005] hover:text-[#FB5005] transition-all">
-                    Get Free AI Audit
-                  </Link>
-                </div>
-              </div>
+            <h2 className="font-[Satoshi] font-900 text-[clamp(2.6rem,6.4vw,4.6rem)] leading-[1.02] tracking-[-0.04em]">
+              Ready to build your<br /><Em>Business OS?</Em>
+            </h2>
+            <p className="mt-5 mx-auto max-w-[480px] text-[1.03rem] leading-[1.65] text-[#A1A1AA]">
+              Book a free 20-minute call. We will map what your business needs, and you will leave with a plan either way.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3.5 mt-10">
+              <BtnPrimary to="/contact">Book a Free Call</BtnPrimary>
+              <BtnGhost href="mailto:hello@stellio.com.au">hello@stellio.com.au</BtnGhost>
             </div>
           </AnimatedSection>
         </div>

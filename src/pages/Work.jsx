@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import AnimatedSection from '../components/AnimatedSection'
+import { Em, PageHero, Card } from '../components/ui'
 import { WebPageSchema, BreadcrumbSchema } from '../components/JsonLd'
 
 export default function Work() {
@@ -24,7 +25,7 @@ export default function Work() {
   }
 
   return (
-    <div className="min-h-screen pt-[100px] pb-20 px-6">
+    <div className="min-h-screen pb-20">
       <WebPageSchema
         type="CollectionPage"
         name="Our Work - Stellio Creative Labs"
@@ -35,34 +36,35 @@ export default function Work() {
         { name: 'Home', url: 'https://stellio.com.au' },
         { name: 'Work', url: 'https://stellio.com.au/work' },
       ]} />
-      <div className="max-w-[1100px] mx-auto">
-        <AnimatedSection>
-          <span className="text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em]">Portfolio</span>
-          <h1 className="font-[Satoshi] text-[2.5rem] md:text-[3rem] font-700 mt-3 mb-4">Our Work</h1>
-          <p className="text-[1.05rem] text-[#A1A1AA] leading-relaxed mb-12 max-w-[600px]">
-            Brands, platforms, and digital tools we have built for startups and scale-ups.
-          </p>
-        </AnimatedSection>
-
-        <div className="grid md:grid-cols-2 gap-6">
+      <PageHero
+        tag="Portfolio"
+        title={<>Real results. <Em>Real businesses.</Em></>}
+        sub="Brands, platforms, and digital tools we have built for startups and scale-ups."
+      />
+      <div className="max-w-[1160px] mx-auto px-6">
+        <div className="grid md:grid-cols-2 gap-4">
           {projects.map((project, i) => (
             <AnimatedSection key={project.id} delay={i * 0.08}>
-              <div className={`bg-gradient-to-br ${project.gradient || 'from-[#1a2a3a] to-[#0f1a24]'} border border-white/[0.06] rounded-2xl p-6 md:p-8 transition-all hover:border-white/[0.12] hover:shadow-lg h-full flex flex-col`}>
+              <Card className="overflow-hidden h-full">
                 {project.image_url && (
-                  <img src={project.image_url} alt={project.name} className="w-full h-48 object-cover rounded-xl mb-4 border border-white/[0.06]" />
-                )}
-                <div className="flex items-center gap-3 mb-3">
-                  <h3 className="font-[Satoshi] text-[1.3rem] font-700 text-[#FAFAFA]">{project.name}</h3>
-                  {project.year && <span className="text-[0.68rem] text-[#71717A] bg-white/[0.04] px-2 py-0.5 rounded">{project.year}</span>}
-                </div>
-                <p className="text-[0.95rem] text-[#FB5005] font-500 mb-3">{project.tagline}</p>
-                <p className="text-[0.88rem] text-[#A1A1AA] leading-relaxed flex-1">{project.description}</p>
-                {project.metrics && (
-                  <div className="mt-4 pt-4 border-t border-white/[0.06]">
-                    <span className="text-[0.82rem] font-600 text-green-400">{project.metrics}</span>
+                  <div className="h-[170px] flex items-center justify-center bg-gradient-to-br from-[#141414] to-[#0D0D0D] border-b border-white/[0.07]">
+                    <img src={project.image_url} alt={project.name} className="max-h-[72px] max-w-[70%] object-contain" />
                   </div>
                 )}
-              </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-[Satoshi] text-[1.2rem] font-700 tracking-[-0.015em] text-[#FAFAFA]">{project.name}</h3>
+                    {project.year && <span className="text-[0.68rem] text-[#71717A] bg-white/[0.04] border border-white/[0.07] px-2 py-0.5 rounded-full">{project.year}</span>}
+                  </div>
+                  <p className="text-[0.85rem] text-[#FB5005] font-500 mt-1">{project.tagline}</p>
+                  <p className="text-[0.88rem] text-[#A1A1AA] leading-[1.6] mt-2.5">{project.description}</p>
+                  {project.metrics && (
+                    <div className="mt-4">
+                      <span className="text-[0.75rem] font-600 text-[#4ADE80] bg-[#22C55E]/[0.09] border border-[#22C55E]/[0.18] px-3 py-1 rounded-full">{project.metrics}</span>
+                    </div>
+                  )}
+                </div>
+              </Card>
             </AnimatedSection>
           ))}
         </div>

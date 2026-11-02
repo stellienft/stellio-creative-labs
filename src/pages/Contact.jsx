@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { sendNotificationEmail, buildContactEmailHtml } from '../lib/email'
 import AnimatedSection from '../components/AnimatedSection'
 import TextReveal from '../components/TextReveal'
+import { Em, PageHero } from '../components/ui'
 import { WebPageSchema, BreadcrumbSchema } from '../components/JsonLd'
 
 export default function Contact() {
@@ -61,21 +62,11 @@ export default function Contact() {
         { name: 'Home', url: 'https://stellio.com.au' },
         { name: 'Contact', url: 'https://stellio.com.au/contact' },
       ]} />
-      <section className="pt-[140px] pb-20 text-center">
-        <div className="max-w-[1100px] mx-auto px-6">
-          <AnimatedSection>
-            <span className="inline-block text-[#FB5005] text-[0.72rem] font-600 uppercase tracking-[0.14em] mb-4">Contact</span>
-            <TextReveal>
-              <h1 className="font-[Satoshi] text-[clamp(2rem,5vw,3.6rem)] font-700 leading-[1.05] mb-6">
-                Let's build something<br /><span className="gradient-text">remarkable.</span>
-              </h1>
-            </TextReveal>
-            <p className="text-[1.05rem] text-[#A1A1AA] max-w-[600px] mx-auto">
-              Book a free 15-minute discovery call. No pressure, no pitch. Just clarity on what is possible.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
+      <PageHero
+        tag="Contact"
+        title={<>Let's build something <Em>remarkable.</Em></>}
+        sub="Book a free 15-minute discovery call. No pressure, no pitch. Just clarity on what is possible."
+      />
 
       <section className="pb-[120px]">
         <div className="max-w-[900px] mx-auto px-6">
