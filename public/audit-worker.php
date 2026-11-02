@@ -109,20 +109,77 @@ function stellio_worker_send_email(string $sbUrl, string $sbAnon, string $toEmai
     $json = json_decode((string)$body, true) ?: [];
     $ok = !empty($json['success']);
 
-    // Notify Boss with the findings summary
+    // Notify Boss with the full audit detail + a copy of the customer's PDF
     if ($ok) {
-        $catLines = 'On-Page & SEO ' . ($s['on_page'] ?? '-') . '/100, Performance ' . ($s['performance'] ?? '-') . '/100, DNS & Domain ' . ($s['dns_domain'] ?? '-') . '/100, AI Design ' . ($s['design'] ?? '-') . '/100';
-        $oppLines = '';
-        foreach (array_slice($audit['opportunities'] ?? [], 0, 10) as $i => $o) {
-            $oppLines .= ($i + 1) . '. [' . strtoupper($o['impact'] ?? 'medium') . '] ' . ($o['title'] ?? '') . ': ' . mb_substr($o['detail'] ?? '', 0, 120) . "\n";
+        $esc = fn($v) => htmlspecialchars((string)$v);
+        $scanDate = date('j M Y, g:ia', strtotime($audit['scanned_at'] ?? 'now'));
+        $oppCount = (int)($audit['opportunity_count'] ?? count($audit['opportunities'] ?? []));
+
+        // Score rows
+        $scoreRows = '';
+        foreach ([
+            'On-Page & SEO' => $s['on_page'] ?? null,
+            'Performance' => $s['performance'] ?? null,
+            'DNS & Domain' => $s['dns_domain'] ?? null,
+            'AI Design' => $s['design'] ?? null,
+        ] as $label => $val) {
+            $scoreRows .= '<tr><td style="padding:7px 12px 7px 0;font-size:13px;color:#666666;width:42%;">' . $label . '</td>'
+                . '<td style="padding:7px 0;font-size:14px;color:#111111;font-weight:600;">' . ($val !== null ? (int)$val . '/100' : 'Not scored') . '</td></tr>';
         }
-        $bossHtml = '<div style="font-family:Arial,sans-serif;background:#0A0A0A;padding:32px">'
-            . '<div style="max-width:560px;margin:0 auto;background:#111111;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:32px;color:#FAFAFA">'
-            . '<h1 style="font-size:20px;margin:0 0 8px">New audit PDF lead</h1>'
-            . '<p style="color:#A1A1AA;font-size:14px">' . htmlspecialchars($toEmail) . ' requested the PDF for <strong style="color:#FAFAFA">' . htmlspecialchars($host) . '</strong>.</p>'
-            . '<p style="color:#FAFAFA;font-size:14px;margin:16px 0 4px"><strong>Overall: ' . $overall . '/100</strong></p>'
-            . '<p style="color:#A1A1AA;font-size:13px">' . $catLines . '</p>'
-            . '<pre style="color:#A1A1AA;font-size:12px;white-space:pre-wrap;background:#0E0E0E;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px">' . htmlspecialchars($oppLines) . '</pre>'
+
+        // AI design verdict
+        $designHtml = '';
+        if (!empty($audit['ai_design'])) {
+            $d = $audit['ai_design'];
+            $recs = '';
+            foreach (array_slice($d['recommendations'] ?? [], 0, 4) as $r) {
+                $recs .= '<li style="font-size:13px;color:#111111;margin-bottom:4px;">' . $esc($r) . '</li>';
+            }
+            $designHtml = '<h2 style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#FB5005;margin:28px 0 10px 0;padding-bottom:6px;border-bottom:2px solid #FB5005;">AI Design Verdict</h2>'
+                . '<p style="font-size:14px;color:#111111;line-height:1.6;margin:0 0 8px;">' . $esc($d['overall_impression'] ?? '') . '</p>'
+                . ($recs ? '<ul style="margin:8px 0 0 18px;padding:0;">' . $recs . '</ul>' : '');
+        }
+
+        // Opportunities grouped by impact
+        $impactColors = ['critical' => '#DC2626', 'high' => '#EA580C', 'medium' => '#D97706', 'low' => '#65A30D'];
+        $byImpact = ['critical' => [], 'high' => [], 'medium' => [], 'low' => []];
+        foreach (($audit['opportunities'] ?? []) as $o) {
+            $imp = strtolower($o['impact'] ?? 'medium');
+            if (!isset($byImpact[$imp])) $imp = 'medium';
+            $byImpact[$imp][] = $o;
+        }
+        $oppHtml = '';
+        $n = 0;
+        foreach ($byImpact as $imp => $items) {
+            if (!$items) continue;
+            $oppHtml .= '<p style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' . $impactColors[$imp] . ';margin:16px 0 6px;">' . ucfirst($imp) . ' (' . count($items) . ')</p>';
+            foreach ($items as $o) {
+                $n++;
+                $oppHtml .= '<div style="margin-bottom:12px;padding:10px 12px;background:#fafafa;border:1px solid #eeeeee;border-radius:8px;">'
+                    . '<p style="margin:0;font-size:13px;font-weight:700;color:#111111;">' . $n . '. ' . $esc($o['title'] ?? '') . '</p>'
+                    . (!empty($o['detail']) ? '<p style="margin:4px 0 0;font-size:13px;color:#555555;line-height:1.5;">' . $esc($o['detail']) . '</p>' : '')
+                    . (!empty($o['fix']) ? '<p style="margin:4px 0 0;font-size:12px;color:#FB5005;line-height:1.5;"><strong>Fix:</strong> ' . $esc($o['fix']) . '</p>' : '')
+                    . '</div>';
+            }
+        }
+
+        $bossHtml = '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;overflow:hidden;">'
+            . '<div style="background:#FB5005;padding:20px 28px;"><h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:700;font-family:Arial,sans-serif;">New Audit Lead: ' . $esc($host) . ' (' . $overall . '/100)</h1></div>'
+            . '<div style="padding:24px 28px;">'
+            . '<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">'
+            . '<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#666666;width:42%;">Lead email</td><td style="padding:6px 0;font-size:14px;"><a href="mailto:' . $esc($toEmail) . '" style="color:#FB5005;text-decoration:none;">' . $esc($toEmail) . '</a></td></tr>'
+            . '<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#666666;">Website</td><td style="padding:6px 0;font-size:14px;"><a href="' . $esc($audit['url'] ?? '') . '" style="color:#FB5005;text-decoration:none;">' . $esc($audit['url'] ?? $host) . '</a></td></tr>'
+            . '<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#666666;">Scanned</td><td style="padding:6px 0;font-size:14px;color:#111111;">' . $scanDate . '</td></tr>'
+            . '<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#666666;">Overall score</td><td style="padding:6px 0;font-size:14px;color:#111111;font-weight:700;">' . $overall . '/100 &nbsp;<span style="color:#888888;font-weight:400;">(' . $oppCount . ' opportunities)</span></td></tr>'
+            . '</table>'
+            . '<h2 style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#FB5005;margin:28px 0 10px 0;padding-bottom:6px;border-bottom:2px solid #FB5005;">Score Breakdown</h2>'
+            . '<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">' . $scoreRows . '</table>'
+            . $designHtml
+            . '<h2 style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#FB5005;margin:28px 0 10px 0;padding-bottom:6px;border-bottom:2px solid #FB5005;">Opportunities (' . $oppCount . ')</h2>'
+            . ($oppHtml ?: '<p style="font-size:13px;color:#666666;">No issues found.</p>')
+            . '</div>'
+            . '<div style="padding:14px 28px;background:#fafafa;border-top:1px solid #eeeeee;">'
+            . '<p style="margin:0;font-size:12px;color:#888888;font-family:Arial,sans-serif;">The PDF sent to the customer is attached. View all leads in the <a href="https://stellio.com.au/admin" style="color:#FB5005;text-decoration:none;">Admin Panel</a>.</p>'
             . '</div></div>';
 
         $parts = [];
@@ -131,11 +188,16 @@ function stellio_worker_send_email(string $sbUrl, string $sbAnon, string $toEmai
             'to' => 'hello@stellio.com.au',
             'subject' => 'Audit PDF lead: ' . $toEmail . ' (' . $host . ' ' . $overall . '/100)',
             'bodyHtml' => $bossHtml,
-            'bodyText' => $toEmail . ' requested the audit PDF for ' . $host . ' (' . $overall . '/100)',
+            'bodyText' => $toEmail . ' requested the audit PDF for ' . $host . ' (' . $overall . '/100). PDF attached.',
             'isTransactional' => 'true',
         ] as $k => $v) {
             $parts[] = '--' . $boundary . $eol . 'Content-Disposition: form-data; name="' . $k . '"' . $eol . $eol . $v . $eol;
         }
+        // Attach the same PDF the customer received
+        $parts[] = '--' . $boundary . $eol
+            . 'Content-Disposition: form-data; name="file"; filename="' . $pdfFilename . '"' . $eol
+            . 'Content-Type: application/pdf' . $eol . $eol
+            . $fileData . $eol;
         $parts[] = '--' . $boundary . '--' . $eol;
         $ch = curl_init('https://api.elasticemail.com/v2/email/send');
         curl_setopt_array($ch, [
