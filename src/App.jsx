@@ -14,6 +14,7 @@ import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import LogoQuestionnaire from './pages/LogoQuestionnaire'
 import WebQuestionnaire from './pages/WebQuestionnaire'
+import Onboarding from './pages/Onboarding'
 import EOFYForm from './pages/EOFYForm'
 import FAQ from './pages/FAQ'
 import AIAudit from './pages/AIAudit'
@@ -103,6 +104,7 @@ function App() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/logo-questionnaire" element={<LogoQuestionnaire />} />
             <Route path="/web-questionnaire" element={<WebQuestionnaire />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/eofy" element={<EOFYForm />} />
             <Route path="/for/:niche" element={<NicheLanding />} />
             <Route path="/examples/:template" element={<ExampleSite />} />

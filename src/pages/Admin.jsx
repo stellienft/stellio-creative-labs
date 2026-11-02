@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { ONBOARDING_SECTIONS, answersAsText } from '../data/onboardingSchema'
 
 // SVG Icon component (24x24, stroke-based, like WP dashicons)
 const Icon = ({ name, size = 24 }) => {
@@ -43,7 +44,10 @@ const SIDEBAR_SECTIONS = [
     { key: 'projects', label: 'Projects', icon: 'projects' },
     { key: 'faqs', label: 'FAQs', icon: 'faqs' },
   ]},
-  { header: 'Management', items: [{ key: 'submissions', label: 'Submissions', icon: 'submissions' }] },
+  { header: 'Management', items: [
+    { key: 'submissions', label: 'Submissions', icon: 'submissions' },
+    { key: 'onboarding', label: 'Onboarding', icon: 'user' },
+  ] },
   { header: 'Appearance', items: [{ key: 'menus', label: 'Menus', icon: 'menu' }] },
   { header: 'System', items: [{ key: 'settings', label: 'Settings', icon: 'settings' }] },
 ]
@@ -106,6 +110,12 @@ export default function Admin() {
   const [auditsData, setAuditsData] = useState(null)
   const [auditsLoading, setAuditsLoading] = useState(false)
   const [auditsRange, setAuditsRange] = useState('30d')
+
+  // Onboarding responses state
+  const [onboardingResponses, setOnboardingResponses] = useState([])
+  const [onboardingLoading, setOnboardingLoading] = useState(false)
+  const [expandedResponse, setExpandedResponse] = useState(null)
+  const [copiedResponse, setCopiedResponse] = useState(null)
 
   // Form state
   const [showBlogForm, setShowBlogForm] = useState(false)
@@ -171,7 +181,7 @@ export default function Admin() {
   }
 
   // Reserved slugs that collide with fixed routes - block these
-  const RESERVED_SLUGS = ['', 'about', 'work', 'services', 'contact', 'blog', 'faq', 'ai-audit', 'admin', 'privacy', 'terms', 'logo-questionnaire', 'web-questionnaire', 'eofy', 'for', 'examples']
+  const RESERVED_SLUGS = ['', 'about', 'work', 'services', 'contact', 'blog', 'faq', 'ai-audit', 'admin', 'privacy', 'terms', 'logo-questionnaire', 'web-questionnaire', 'onboarding', 'eofy', 'for', 'examples']
 
   useEffect(() => {
     if (session) fetchData()
@@ -346,6 +356,33 @@ export default function Admin() {
   useEffect(() => {
     if (session && activeTab === 'siteAudits') fetchAudits(auditsRange)
   }, [session, activeTab, auditsRange])
+
+  // --- Onboarding responses ---
+  const fetchOnboarding = async () => {
+    setOnboardingLoading(true)
+    const { data } = await supabase.from('onboarding_responses').select('*').order('updated_at', { ascending: false })
+    if (data) setOnboardingResponses(data)
+    setOnboardingLoading(false)
+  }
+
+  useEffect(() => {
+    if (session && activeTab === 'onboarding') fetchOnboarding()
+  }, [session, activeTab])
+
+  const copyResponse = async (r) => {
+    const header = `ONBOARDING: ${r.business || 'Unknown business'} (${r.contact_name || 'No name'}) - ${r.status}\nUpdated: ${formatDate(r.updated_at)}\n\n`
+    try {
+      await navigator.clipboard.writeText(header + answersAsText(r.answers || {}))
+      setCopiedResponse(r.id)
+      setTimeout(() => setCopiedResponse(null), 2000)
+    } catch (e) { alert('Copy failed: ' + e.message) }
+  }
+
+  const deleteOnboarding = async (id) => {
+    if (!confirm('Delete this onboarding response?')) return
+    await supabase.from('onboarding_responses').delete().eq('id', id)
+    fetchOnboarding()
+  }
 
   // --- Auth ---
   const handleLogin = async (e) => {
@@ -1750,6 +1787,98 @@ export default function Admin() {
                 )}
 
                 {/* Submissions */}
+                {/* Onboarding responses */}
+                {activeTab === 'onboarding' && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-[Satoshi] text-[1.1rem] font-600 text-[#FAFAFA]">Client Onboarding</h3>
+                        <p className="text-[0.78rem] text-[#71717A] mt-0.5">Responses from stellio.com.au/onboarding - one per client, autosaved as they go.</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[0.78rem] text-[#71717A]">{onboardingResponses.length} response{onboardingResponses.length === 1 ? '' : 's'}</span>
+                        <button onClick={fetchOnboarding}
+                          className="px-4 py-2 rounded-lg border border-white/[0.12] text-[0.82rem] font-500 text-[#A1A1AA] hover:text-[#FAFAFA] transition-all">Refresh</button>
+                      </div>
+                    </div>
+
+                    {onboardingLoading ? (
+                      <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-2 border-[#FB5005] border-t-transparent rounded-full animate-spin" /></div>
+                    ) : onboardingResponses.length === 0 ? (
+                      <div className="bg-[#111111] border border-white/[0.08] rounded-lg p-10 text-center text-[#71717A] text-[0.88rem]">
+                        No onboarding responses yet. Share <a href="/onboarding" target="_blank" rel="noopener" className="text-[#FB5005] hover:underline">stellio.com.au/onboarding</a> with a client to get started.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {onboardingResponses.map(r => {
+                          const answers = r.answers || {}
+                          const answeredCount = Object.values(answers).filter(v => v !== undefined && v !== null && v !== '' && (!Array.isArray(v) || v.length > 0)).length
+                          const open = expandedResponse === r.id
+                          return (
+                            <div key={r.id} className="bg-[#111111] border border-white/[0.08] rounded-lg overflow-hidden">
+                              <button onClick={() => setExpandedResponse(open ? null : r.id)}
+                                className="w-full flex items-center justify-between gap-4 px-5 py-4 hover:bg-white/[0.02] transition-colors text-left">
+                                <div className="flex items-center gap-4 min-w-0">
+                                  <span className="w-9 h-9 rounded-full bg-[#FB5005]/10 text-[#FB5005] text-[0.7rem] font-700 flex items-center justify-center shrink-0">
+                                    {(r.contact_name || r.business || '?').substring(0, 1).toUpperCase()}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-[0.92rem] font-600 text-[#FAFAFA] truncate">{r.business || 'Unnamed business'}</p>
+                                    <p className="text-[0.75rem] text-[#71717A] truncate">{r.contact_name || 'No contact name'} · {answeredCount} fields · updated {formatDate(r.updated_at)}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <span className={`inline-flex items-center gap-1.5 text-[0.65rem] font-600 px-2 py-0.5 rounded ${r.status === 'submitted' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${r.status === 'submitted' ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                                    {r.status === 'submitted' ? 'Submitted' : 'In progress'}
+                                  </span>
+                                  <span className="text-[#71717A] text-[0.75rem]">{open ? '▲' : '▼'}</span>
+                                </div>
+                              </button>
+
+                              {open && (
+                                <div className="border-t border-white/[0.06] px-5 py-4">
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <button onClick={() => copyResponse(r)}
+                                      className="px-4 py-2 rounded-lg bg-[#FB5005] text-white text-[0.78rem] font-600 hover:bg-[#E55A1F] transition-all">
+                                      {copiedResponse === r.id ? 'Copied!' : 'Copy as text'}
+                                    </button>
+                                    <button onClick={() => deleteOnboarding(r.id)}
+                                      className="px-4 py-2 rounded-lg border border-white/[0.12] text-[0.78rem] font-500 text-[#A1A1AA] hover:text-red-400 transition-all">Delete</button>
+                                  </div>
+                                  <div className="space-y-5">
+                                    {ONBOARDING_SECTIONS.map(s => {
+                                      const rows = s.fields.filter(f => {
+                                        const v = answers[f.id]
+                                        return v !== undefined && v !== null && v !== '' && (!Array.isArray(v) || v.length > 0)
+                                      })
+                                      if (rows.length === 0) return null
+                                      return (
+                                        <div key={s.id}>
+                                          <p className="text-[0.68rem] font-600 text-[#FB5005] uppercase tracking-[0.08em] mb-2">{s.num}. {s.title}</p>
+                                          <div className="space-y-2 pl-3 border-l-2 border-white/[0.06]">
+                                            {rows.map(f => (
+                                              <div key={f.id}>
+                                                <p className="text-[0.72rem] text-[#71717A]">{f.label}</p>
+                                                <p className="text-[0.85rem] text-[#FAFAFA] whitespace-pre-wrap">{Array.isArray(answers[f.id]) ? answers[f.id].join(', ') : String(answers[f.id])}</p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                    {answeredCount === 0 && <p className="text-[0.85rem] text-[#71717A]">No answers saved yet.</p>}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {activeTab === 'submissions' && (
                   submissions.length === 0 ? (
                     <div className="bg-[#111111] border border-white/[0.08] rounded-lg p-12 text-center">
