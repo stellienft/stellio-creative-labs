@@ -64,13 +64,38 @@ function stellio_worker_send_email(string $sbUrl, string $sbAnon, string $toEmai
     $overall = (int)($audit['overall_score'] ?? 0);
     $s = $audit['scores'] ?? [];
 
-    $leadHtml = '<div style="font-family:Arial,sans-serif;background:#0A0A0A;padding:32px">'
-        . '<div style="max-width:560px;margin:0 auto;background:#111111;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:32px;color:#FAFAFA">'
-        . '<h1 style="font-size:20px;margin:0 0 8px">Your website audit is ready</h1>'
-        . '<p style="color:#A1A1AA;font-size:14px;line-height:1.6">Here is your full report for <strong style="color:#FAFAFA">' . htmlspecialchars($host) . '</strong> - overall score <strong style="color:#FB5005">' . $overall . '/100</strong>.</p>'
-        . '<p style="color:#A1A1AA;font-size:14px;line-height:1.6">The PDF is attached. If you want help fixing anything, book a free call and we will walk through it together.</p>'
-        . '<a href="https://stellio.com.au/contact" style="display:inline-block;margin-top:8px;background:#FB5005;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600">Book a free call</a>'
-        . '<p style="color:#71717A;font-size:12px;margin-top:24px">Stellio Creative Labs - Build Bold. Launch Smarter.<br>stellio.com.au</p>'
+    // Lead-facing email - same clean white/orange style as the Boss notification
+    $leadScoreRows = '';
+    foreach ([
+        'On-Page & SEO' => $s['on_page'] ?? null,
+        'Performance' => $s['performance'] ?? null,
+        'DNS & Domain' => $s['dns_domain'] ?? null,
+        'AI Design' => $s['design'] ?? null,
+    ] as $label => $val) {
+        $leadScoreRows .= '<tr><td style="padding:7px 12px 7px 0;font-size:13px;color:#666666;width:55%;">' . $label . '</td>'
+            . '<td style="padding:7px 0;font-size:14px;color:#111111;font-weight:600;">' . ($val !== null ? (int)$val . '/100' : 'Not scored') . '</td></tr>';
+    }
+    $leadOpps = '';
+    foreach (array_slice($audit['opportunities'] ?? [], 0, 3) as $i => $o) {
+        $leadOpps .= '<div style="margin-bottom:10px;padding:10px 12px;background:#fafafa;border:1px solid #eeeeee;border-radius:8px;">'
+            . '<p style="margin:0;font-size:13px;font-weight:700;color:#111111;">' . ($i + 1) . '. ' . htmlspecialchars($o['title'] ?? '') . '</p>'
+            . (!empty($o['detail']) ? '<p style="margin:4px 0 0;font-size:13px;color:#555555;line-height:1.5;">' . htmlspecialchars(mb_substr($o['detail'], 0, 140)) . (mb_strlen($o['detail']) > 140 ? '...' : '') . '</p>' : '')
+            . '</div>';
+    }
+    $leadOppCount = (int)($audit['opportunity_count'] ?? count($audit['opportunities'] ?? []));
+
+    $leadHtml = '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;overflow:hidden;">'
+        . '<div style="background:#FB5005;padding:20px 28px;"><h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:700;font-family:Arial,sans-serif;">Your Website Audit: ' . htmlspecialchars($host) . ' scored ' . $overall . '/100</h1></div>'
+        . '<div style="padding:24px 28px;">'
+        . '<p style="font-size:14px;color:#111111;line-height:1.6;margin:0 0 16px;">Your full report is attached as a PDF. Here is a quick snapshot:</p>'
+        . '<h2 style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#FB5005;margin:0 0 10px 0;padding-bottom:6px;border-bottom:2px solid #FB5005;">Score Breakdown</h2>'
+        . '<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">' . $leadScoreRows . '</table>'
+        . ($leadOpps ? '<h2 style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#FB5005;margin:28px 0 10px 0;padding-bottom:6px;border-bottom:2px solid #FB5005;">Top Fixes (of ' . $leadOppCount . ')</h2>' . $leadOpps : '')
+        . '<p style="font-size:14px;color:#111111;line-height:1.6;margin:20px 0 0;">If anything stands out and you would like a hand fixing it, book a free call and we will walk through the report together.</p>'
+        . '<p style="margin:20px 0 0;"><a href="https://stellio.com.au/contact" style="display:inline-block;background:#FB5005;color:#ffffff;text-decoration:none;padding:12px 26px;border-radius:8px;font-size:14px;font-weight:700;">Book a free call</a></p>'
+        . '</div>'
+        . '<div style="padding:14px 28px;background:#fafafa;border-top:1px solid #eeeeee;">'
+        . '<p style="margin:0;font-size:12px;color:#888888;font-family:Arial,sans-serif;">Stellio Creative Labs - Build Bold. Launch Smarter. <a href="https://stellio.com.au" style="color:#FB5005;text-decoration:none;">stellio.com.au</a></p>'
         . '</div></div>';
 
     // multipart send
