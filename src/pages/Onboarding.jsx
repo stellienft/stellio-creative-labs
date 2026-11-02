@@ -60,28 +60,15 @@ export default function Onboarding() {
   const doPersist = useCallback(async (next, nextStatus) => {
     setSaving(true)
     localStorage.setItem(LS_DRAFT, JSON.stringify({ answers: next, status: nextStatus, updatedAt: Date.now() }))
-    const cid = getClientId()
-    const row = {
-      answers: next,
-      status: nextStatus,
-      contact_name: next.contact_name || null,
-      business: next.new_name_known || next.current_name || null,
-      updated_at: new Date().toISOString(),
-    }
-    // Upsert is blocked by RLS (it requires SELECT), so: insert once, then update
-    let error
-    if (localStorage.getItem(LS_CREATED) === '1') {
-      ({ error } = await supabase.from('onboarding_responses').update(row).eq('client_id', cid))
-    } else {
-      ({ error } = await supabase.from('onboarding_responses').insert({ ...row, client_id: cid }))
-      if (!error) {
-        localStorage.setItem(LS_CREATED, '1')
-      } else if (error.code === '23505') {
-        // Row exists already (e.g. new browser storage) - switch to update mode
-        localStorage.setItem(LS_CREATED, '1')
-        ({ error } = await supabase.from('onboarding_responses').update(row).eq('client_id', cid))
-      }
-    }
+    // Save via security-definer RPC - anon UPDATEs are silently dropped by RLS,
+    // and PostgREST upserts need SELECT, so direct table writes can't work
+    const { error } = await supabase.rpc('save_onboarding', {
+      p_client_id: getClientId(),
+      p_answers: next,
+      p_status: nextStatus,
+      p_contact_name: next.contact_name || null,
+      p_business: next.new_name_known || next.current_name || null,
+    })
     if (error) console.error('Autosave failed:', error)
     setSaving(false)
     setSavedAt(new Date())
