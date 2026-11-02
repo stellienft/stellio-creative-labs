@@ -212,7 +212,7 @@ export default function Home() {
                   </IconChip>
                   <h3 className="font-[Satoshi] text-[1.15rem] font-700 tracking-[-0.015em]">{s.title}</h3>
                   <p className="mt-2 text-[0.88rem] leading-[1.6] text-[#A1A1AA] flex-1">{s.desc}</p>
-                  <span className="mt-5 inline-block text-[0.78rem] font-600 text-[#71717A] bg-[#0A0A0A] px-3 py-1.5 rounded-md border border-white/[0.06] w-fit">
+                  <span className="mt-5 inline-block text-[0.78rem] font-600 text-[#FB5005] bg-[#FB5005]/[0.08] px-3 py-1.5 rounded-md border border-[#FB5005]/[0.2] w-fit">
                     {s.price}
                   </span>
                 </Card>
