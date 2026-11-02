@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { sendNotificationEmail } from '../lib/email'
-import { ONBOARDING_SECTIONS, domainIdeas, answersAsText } from '../data/onboardingSchema'
+import { ONBOARDING_SECTIONS, domainIdeas, answersAsHtml } from '../data/onboardingSchema'
 
 const LS_DRAFT = 'stellio_onboarding_draft_v2'
 const LS_CID = 'stellio_onboarding_cid'
@@ -149,22 +149,20 @@ export default function Onboarding() {
       to: 'hello@stellio.com.au',
       subject: `Onboarding ${status === 'submitted' ? 'updated' : 'submitted'}: ${answers.contact_name} (${biz})`,
       htmlBody: `
-        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;background:#0A0A0A;border-radius:16px;overflow:hidden;">
-          <div style="background:#FB5005;padding:24px 32px;">
-            <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">Onboarding Questionnaire ${status === 'submitted' ? 'Updated' : 'Submitted'}</h1>
+        <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;overflow:hidden;">
+          <div style="background:#FB5005;padding:20px 28px;">
+            <h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:700;font-family:Arial,sans-serif;">Onboarding ${status === 'submitted' ? 'Updated' : 'Submitted'}: ${esc(biz)}</h1>
           </div>
-          <div style="padding:32px;color:#FAFAFA;">
-            <table style="width:100%;border-collapse:collapse;">
-              <tr><td style="padding:8px 0;color:#71717A;font-size:12px;text-transform:uppercase;width:100px;">Name</td><td style="padding:8px 0;font-size:15px;">${esc(answers.contact_name)}</td></tr>
-              <tr><td style="padding:8px 0;color:#71717A;font-size:12px;text-transform:uppercase;">Email</td><td style="padding:8px 0;font-size:15px;"><a href="mailto:${esc(answers.contact_email)}" style="color:#FB5005;text-decoration:none;">${esc(answers.contact_email)}</a></td></tr>
-              <tr><td style="padding:8px 0;color:#71717A;font-size:12px;text-transform:uppercase;">Business</td><td style="padding:8px 0;font-size:15px;">${esc(biz)}</td></tr>
+          <div style="padding:24px 28px;">
+            <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
+              <tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#666666;width:42%;">Name</td><td style="padding:6px 0;font-size:14px;color:#111111;font-weight:600;">${esc(answers.contact_name)}</td></tr>
+              <tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#666666;">Email</td><td style="padding:6px 0;font-size:14px;"><a href="mailto:${esc(answers.contact_email)}" style="color:#FB5005;text-decoration:none;">${esc(answers.contact_email)}</a></td></tr>
+              <tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#666666;">Business</td><td style="padding:6px 0;font-size:14px;color:#111111;">${esc(biz)}</td></tr>
             </table>
-            <div style="margin-top:24px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.06);">
-              <pre style="font-family:monospace;font-size:13px;color:#A1A1AA;white-space:pre-wrap;line-height:1.6;">${esc(answersAsText(answers))}</pre>
-            </div>
+            ${answersAsHtml(answers)}
           </div>
-          <div style="padding:16px 32px;background:#0E0E0E;border-top:1px solid rgba(255,255,255,0.06);">
-            <p style="margin:0;font-size:12px;color:#71717A;">View all responses in the <a href="${window.location.origin}/admin" style="color:#FB5005;text-decoration:none;">Admin Panel</a> (Onboarding tab)</p>
+          <div style="padding:14px 28px;background:#fafafa;border-top:1px solid #eeeeee;">
+            <p style="margin:0;font-size:12px;color:#888888;font-family:Arial,sans-serif;">View all responses in the <a href="${window.location.origin}/admin" style="color:#FB5005;text-decoration:none;">Admin Panel</a> (Onboarding tab)</p>
           </div>
         </div>`,
     }).catch(err => console.error('Email notification failed:', err))

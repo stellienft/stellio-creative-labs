@@ -158,6 +158,32 @@ export function domainIdeas(newNameKnown, shortlist) {
   return ideas
 }
 
+const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+export function answersAsHtml(answers) {
+  let sections = ''
+  for (const s of ONBOARDING_SECTIONS) {
+    const rows = s.fields.filter(f => {
+      const v = answers[f.id]
+      return v !== undefined && v !== null && v !== '' && (!Array.isArray(v) || v.length > 0)
+    })
+    if (rows.length === 0) continue
+    sections += `
+      <h2 style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#FB5005;margin:28px 0 10px 0;padding-bottom:6px;border-bottom:2px solid #FB5005;">${s.num}. ${escHtml(s.title)}</h2>
+      <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
+        ${rows.map(f => {
+          const v = answers[f.id]
+          const val = Array.isArray(v) ? v.join(', ') : String(v)
+          return `<tr>
+            <td style="padding:7px 12px 7px 0;font-size:13px;color:#666666;vertical-align:top;width:42%;">${escHtml(f.label)}</td>
+            <td style="padding:7px 0;font-size:14px;color:#111111;vertical-align:top;white-space:pre-wrap;">${escHtml(val)}</td>
+          </tr>`
+        }).join('')}
+      </table>`
+  }
+  return sections
+}
+
 export function answersAsText(answers) {
   let out = ''
   for (const s of ONBOARDING_SECTIONS) {
