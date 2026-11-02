@@ -9,7 +9,7 @@ const ease = [0.16, 1, 0.3, 1]
 const stats = [
   { num: '70+', title: '5-star reviews', desc: 'Rated across branding, web and platform projects.' },
   { num: '40+', title: 'Brands launched', desc: 'From first logo to full Business OS.' },
-  { num: '10yrs', title: 'Design & build', desc: 'Senior-level work. No junior teams, no bloat.' },
+  { num: '15+', title: 'Years designing & building', desc: 'Senior-level work. No junior teams, no bloat.' },
   { num: '100%', title: 'End to end, in-house', desc: 'Strategy, design, code and automation. One partner.' },
 ]
 
