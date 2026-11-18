@@ -114,6 +114,29 @@ export default function Onboarding() {
     document.getElementById(`onb-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  // Reset this browser to a blank questionnaire with a new client id, so the next
+  // submission creates a separate row instead of overwriting the one just sent.
+  const startNew = () => {
+    const ok = window.confirm(
+      'Start a new questionnaire?\n\nThis clears the form in this browser and starts from blank. ' +
+      'Your submitted answers stay on file with us.'
+    )
+    if (!ok) return
+    clearTimeout(saveTimer.current)
+    localStorage.removeItem(LS_DRAFT)
+    localStorage.removeItem(LS_CID)
+    localStorage.removeItem(LS_CREATED)
+    firstLoad.current = true
+    setAnswers({})
+    setStatus('draft')
+    setSavedAt(null)
+    setSubmitError('')
+    setSaving(false)
+    setSubmitted(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setTimeout(() => { firstLoad.current = false }, 0)
+  }
+
   const handleSubmit = async () => {
     clearTimeout(saveTimer.current)
     setSubmitError('')
@@ -271,10 +294,19 @@ export default function Onboarding() {
             <p className={`text-[0.88rem] leading-relaxed mb-6 ${t.label}`}>
               Your answers are saved. You can come back and edit them any time, then resubmit.
             </p>
-            <button onClick={() => setSubmitted(false)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FB5005] text-white text-[0.88rem] font-600 hover:bg-[#E55A1F] transition-all">
-              Review or edit my answers
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button onClick={() => setSubmitted(false)}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FB5005] text-white text-[0.88rem] font-600 hover:bg-[#E55A1F] transition-all">
+                Review or edit my answers
+              </button>
+              <button onClick={startNew}
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl border text-[0.88rem] font-600 transition-all ${light ? 'border-black/[0.12] text-black/70 hover:border-black/30 hover:text-black' : 'border-white/[0.12] text-white/60 hover:border-white/30 hover:text-white'}`}>
+                Start a new questionnaire
+              </button>
+            </div>
+            <p className={`text-[0.78rem] leading-relaxed mt-4 ${t.label}`}>
+              Starting a new one clears this browser only. Your submitted answers stay on file with us.
+            </p>
           </div>
         </div>
       </div>
