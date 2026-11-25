@@ -1,4 +1,7 @@
 <?php
+// CLI-only: refuse HTTP access (cron runs this file directly; FPM cannot exec/proc_open anyway)
+if (PHP_SAPI !== 'cli') { http_response_code(403); header('X-Robots-Tag: noindex'); exit('Forbidden'); }
+
 /**
  * Stellio audit PDF queue worker - runs via cron every minute in CLI mode
  * (CLI PHP has exec/proc_open enabled; the FPM pool does not).
@@ -38,26 +41,11 @@ foreach ($jobs as $jobFile) {
 function stellio_worker_send_email(string $sbUrl, string $sbAnon, string $toEmail, array $audit, string $pdfPath, string $pdfFilename): bool {
     if (!$sbUrl || !$sbAnon) return false;
 
-    // Fetch Elastic Email creds from site_settings
-    $keys = ['elastic_email_api_key', 'elastic_email_from', 'elastic_email_from_name', 'elastic_mail_api_key', 'elastic_mail_from_email', 'elastic_mail_from_name'];
-    $settings = [];
-    foreach ($keys as $k) {
-        $ch = curl_init($sbUrl . '/rest/v1/site_settings?select=key,value&key=eq.' . urlencode($k));
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => ['apikey: ' . $sbAnon, 'Authorization: Bearer ' . $sbAnon],
-            CURLOPT_TIMEOUT => 10,
-        ]);
-        $body = curl_exec($ch);
-        $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
-        if ($code === 200) {
-            foreach (json_decode((string)$body, true) ?: [] as $row) $settings[$row['key']] = $row['value'];
-        }
-    }
-    $apiKey = $settings['elastic_email_api_key'] ?? ($settings['elastic_mail_api_key'] ?? '');
-    $from = $settings['elastic_email_from'] ?? ($settings['elastic_mail_from_email'] ?? 'hello@stellio.com.au');
-    $fromName = $settings['elastic_email_from_name'] ?? ($settings['elastic_mail_from_name'] ?? 'Stellio Creative Labs');
+    // Fetch Elastic Email creds from server-side config (never stored in anon-readable DB)
+    $emailCfg = @include __DIR__ . '/email-config.php';
+    $apiKey = is_array($emailCfg) ? ($emailCfg['elastic_email_api_key'] ?? '') : '';
+    $from = is_array($emailCfg) ? ($emailCfg['from_email'] ?? 'hello@stellio.com.au') : 'hello@stellio.com.au';
+    $fromName = is_array($emailCfg) ? ($emailCfg['from_name'] ?? 'Stellio Creative Labs') : 'Stellio Creative Labs';
     if (!$apiKey) return false;
 
     $host = $audit['host'] ?? parse_url($audit['url'] ?? '', PHP_URL_HOST) ?: 'site';

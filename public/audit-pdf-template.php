@@ -1,4 +1,7 @@
 <?php
+// Library file: refuse direct HTTP access (included by site-audit-api.php / audit-worker.php)
+if (PHP_SAPI !== 'cli' && (basename($_SERVER['SCRIPT_NAME'] ?? '') === basename(__FILE__))) { http_response_code(403); exit('Forbidden'); }
+
 /**
  * Stellio audit PDF template renderer.
  * Renders the exact reference design (cream/orange, Onest/Geist Mono/Instrument Serif)

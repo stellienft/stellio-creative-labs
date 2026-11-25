@@ -1,59 +1,27 @@
-import { supabase } from '../lib/supabase'
-
 /**
- * Send a notification email via Elastic Email API
- * Reads API credentials from site_settings in Supabase
+ * Send a notification email via the server-side relay (/send-mail.php).
+ * The Elastic Email API key lives on the server only — never in the browser.
  */
 export async function sendNotificationEmail({ to, subject, htmlBody, textBody }) {
-  // Fetch email settings from Supabase
-  const { data, error } = await supabase
-    .from('site_settings')
-    .select('key,value')
-    .in('key', ['elastic_email_api_key', 'elastic_email_from', 'elastic_email_from_name', 'elastic_mail_api_key', 'elastic_mail_from_email', 'elastic_mail_from_name'])
-
-  if (error || !data) {
-    console.error('Failed to fetch email settings:', error)
-    return { success: false, error: 'Email settings not configured' }
-  }
-
-  const settings = {}
-  data.forEach(row => { settings[row.key] = row.value })
-
-  // Support both old (elastic_mail_*) and new (elastic_email_*) key naming
-  const apiKey = settings.elastic_email_api_key || settings.elastic_mail_api_key
-  if (!apiKey) {
-    console.warn('Elastic Email API key not set - skipping email notification')
-    return { success: false, error: 'Elastic Email API key not configured in admin settings' }
-  }
-
-  const from = settings.elastic_email_from || settings.elastic_mail_from_email || 'hello@stellio.com.au'
-  const fromName = settings.elastic_email_from_name || settings.elastic_mail_from_name || 'Stellio Creative Labs'
-
-  const formData = new URLSearchParams()
-  formData.append('apikey', apiKey)
-  formData.append('from', from)
-  formData.append('fromName', fromName)
-  formData.append('to', to)
-  formData.append('subject', subject)
-  formData.append('bodyHtml', htmlBody)
-  formData.append('bodyText', textBody || htmlBody.replace(/<[^>]*>/g, ''))
-  formData.append('isTransactional', 'true')
-
   try {
-    const resp = await fetch('https://api.elasticemail.com/v2/email/send', {
+    const resp = await fetch('/send-mail.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formData.toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to,
+        subject,
+        htmlBody,
+        textBody: textBody || htmlBody.replace(/<[^>]*>/g, ''),
+      }),
     })
-    const result = await resp.json()
-    if (result.success) {
+    const result = await resp.json().catch(() => ({}))
+    if (resp.ok && result.success) {
       return { success: true }
-    } else {
-      console.error('Elastic Email error:', result.error)
-      return { success: false, error: result.error }
     }
+    console.error('Email relay error:', result.error || resp.status)
+    return { success: false, error: result.error || `Email relay failed (${resp.status})` }
   } catch (err) {
-    console.error('Elastic Email fetch error:', err)
+    console.error('Email relay fetch error:', err)
     return { success: false, error: err.message }
   }
 }

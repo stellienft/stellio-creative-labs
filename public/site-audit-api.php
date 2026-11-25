@@ -176,23 +176,11 @@ function stellio_build_audit_pdf(array $audit): array {
 
 /** Send the PDF to the lead + notify Boss via Elastic Email */
 function stellio_email_pdf(string $sbUrl, string $sbAnon, string $toEmail, array $audit, string $pdfPath, string $pdfFilename): array {
-    // Fetch Elastic Email creds from site_settings (anon-readable)
-    if (!$sbUrl || !$sbAnon) return ['ok' => false, 'error' => 'Supabase config missing'];
-    $keys = ['elastic_email_api_key', 'elastic_email_from', 'elastic_email_from_name', 'elastic_mail_api_key', 'elastic_mail_from_email', 'elastic_mail_from_name'];
-    $settings = [];
-    foreach ($keys as $k) {
-        $resp = fetch($sbUrl . '/rest/v1/site_settings?select=key,value&key=eq.' . urlencode($k), [
-            'timeout' => 10,
-            'headers' => ['apikey: ' . $sbAnon, 'Authorization: Bearer ' . $sbAnon],
-        ]);
-        if ($resp['status'] === 200) {
-            foreach (json_decode($resp['body'], true) ?: [] as $row) $settings[$row['key']] = $row['value'];
-        }
-    }
-    if (!$settings) return ['ok' => false, 'error' => 'Could not read email settings'];
-    $apiKey = $settings['elastic_email_api_key'] ?? $settings['elastic_mail_api_key'] ?? '';
-    $from = $settings['elastic_email_from'] ?? $settings['elastic_mail_from_email'] ?? 'hello@stellio.com.au';
-    $fromName = $settings['elastic_email_from_name'] ?? $settings['elastic_mail_from_name'] ?? 'Stellio Creative Labs';
+    // Fetch Elastic Email creds from server-side config (never stored in anon-readable DB)
+    $emailCfg = @include __DIR__ . '/email-config.php';
+    $apiKey = is_array($emailCfg) ? ($emailCfg['elastic_email_api_key'] ?? '') : '';
+    $from = is_array($emailCfg) ? ($emailCfg['from_email'] ?? 'hello@stellio.com.au') : 'hello@stellio.com.au';
+    $fromName = is_array($emailCfg) ? ($emailCfg['from_name'] ?? 'Stellio Creative Labs') : 'Stellio Creative Labs';
     if (!$apiKey) return ['ok' => false, 'error' => 'Elastic Email API key not configured'];
 
     $host = parse_url($audit['url'], PHP_URL_HOST) ?: $audit['url'];
