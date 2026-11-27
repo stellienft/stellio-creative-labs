@@ -364,6 +364,105 @@ function stellio_has_live_chat(string $html): bool {
 // Plain-English "Stellio's take" - reuses the same cheap OpenAI model as the
 // design review to turn the score + issues + competitor gap into a human
 // paragraph and one concrete next step. Cached 6h.
+// Top failing Lighthouse audits (score 0..<0.9, non-informational) by id,
+// returned as short titles for the "top issues" line.
+function stellio_top_failing_audits(array $audits, array $ids, int $max = 3): array {
+    $out = [];
+    foreach ($ids as $id) {
+        $a = $audits[$id] ?? null;
+        if (!is_array($a)) continue;
+        $mode = $a['scoreDisplayMode'] ?? '';
+        if (in_array($mode, ['informative', 'notApplicable', 'manual'], true)) continue;
+        $sc = $a['score'] ?? null;
+        if ($sc === null || $sc >= 0.9) continue;
+        $out[] = rtrim((string)($a['title'] ?? $id), '. ');
+        if (count($out) >= $max) break;
+    }
+    return $out;
+}
+
+// Accessibility / best-practices / SEO checks from the Lighthouse data we
+// already fetch with the performance call.
+function stellio_quality_checks(array $psiScores, array $audits): array {
+    $out = [];
+    $a11y = $psiScores['accessibility'] ?? null;
+    if ($a11y !== null) {
+        $fails = stellio_top_failing_audits($audits, ['color-contrast', 'image-alt', 'label', 'button-name', 'link-name', 'html-has-lang', 'heading-order'], 3);
+        $detail = "Accessibility score: {$a11y}/100";
+        if ($fails) $detail .= ' - top issues: ' . implode(', ', array_map('strtolower', $fails));
+        $out[] = finding('Accessibility', 'Accessibility (WCAG basics)', $detail, $a11y >= 90, 'high', 'Fix colour contrast, form labels and image alt text so everyone can use your site - also a legal risk under the DDA.');
+    }
+    $bp = $psiScores['best-practices'] ?? null;
+    if ($bp !== null) $out[] = finding('Best Practices', 'Lighthouse best practices', "Best-practices score: {$bp}/100", $bp >= 90, 'medium', 'Avoid deprecated APIs, console errors and insecure resources.');
+    $seo = $psiScores['seo'] ?? null;
+    if ($seo !== null) $out[] = finding('SEO', 'Lighthouse SEO score', "Technical SEO score: {$seo}/100", $seo >= 90, 'high', 'Make sure every page is crawlable with a title, meta description and readable links.');
+    return $out;
+}
+
+// Page weight + an honest mobile-load estimate from the Lighthouse audits.
+function stellio_page_weight(array $audits): ?array {
+    $bytes = $audits['total-byte-weight']['numericValue'] ?? null;
+    if ($bytes === null) return null;
+    $mb = round($bytes / 1048576, 1);
+    $items = $audits['network-requests']['details']['items'] ?? [];
+    $req = is_array($items) ? count($items) : null;
+    // Effective 4G throughput ~ 1.6 Mbps = 200 KB/s, plus ~0.4s connection setup.
+    $secs = round($bytes / 200000 + 0.4, 1);
+    return ['mb' => $mb, 'bytes' => (int)$bytes, 'requests' => $req, 'est_4g_s' => $secs, 'pass' => $mb <= 2.0];
+}
+
+// Does the page make it easy to enquire? DOM-level conversion checklist.
+function stellio_conversion_checks(string $html): array {
+    $out = [];
+    $out[] = ['key' => 'tel', 'label' => 'Click-to-call phone', 'pass' => (bool)preg_match('/href\s*=\s*["\']tel:/i', $html), 'detail' => 'A tap-to-call button so phone visitors can reach you in one tap.'];
+    $out[] = ['key' => 'form', 'label' => 'Contact form', 'pass' => (bool)preg_match('/<form\b/i', $html), 'detail' => 'A form so visitors can enquire without leaving the site.'];
+    $out[] = ['key' => 'booking', 'label' => 'Online booking', 'pass' => (bool)preg_match('/calendly\.com|cal\.com|acuityscheduling|squareup|square\.site|booksy|setmore|simplybook|\bbook\s*(now|a\s*(call|appointment|consult))/i', $html), 'detail' => 'An online booking link so leads can pick a time without emailing.'];
+    $out[] = ['key' => 'address', 'label' => 'Address & hours', 'pass' => (bool)preg_match('/"[a-zA-Z]*[Ss]treetAddress"|"openingHours"|"addressLocality"|opening hours/i', $html), 'detail' => 'Show your address and opening hours - local visitors want to know if you are nearby.'];
+    return $out;
+}
+
+// Trust signals that make a stranger comfortable enough to buy.
+function stellio_trust_checks(string $html): array {
+    $s = strtolower($html);
+    $out = [];
+    $out[] = ['key' => 'reviews', 'label' => 'Reviews / star-rating schema', 'pass' => (bool)preg_match('/aggregaterating|"review"/i', $html), 'detail' => 'Add review schema so Google can show your star rating in search results.'];
+    $out[] = ['key' => 'testimonials', 'label' => 'Testimonials on the page', 'pass' => (strpos($s, 'testimonial') !== false || (bool)preg_match('/<blockquote/i', $html)), 'detail' => 'Real customer quotes build instant trust with new visitors.'];
+    $out[] = ['key' => 'privacy', 'label' => 'Privacy policy', 'pass' => (bool)preg_match('/href\s*=\s*["\'][^"\']*privacy/i', $html), 'detail' => 'A privacy policy link is expected and builds legitimacy (and is required if you collect data).'];
+    $out[] = ['key' => 'terms', 'label' => 'Terms of service', 'pass' => (bool)preg_match('/href\s*=\s*["\'][^"\']*(terms|\/tos\b)/i', $html), 'detail' => 'A terms link signals a legitimate, established business.'];
+    return $out;
+}
+
+// Deterministic "how you compare" bullets from the side-by-side scores.
+function stellio_competitor_gap(array $main, array $competitors): array {
+    if (!$competitors) return ['headline' => null, 'bullets' => []];
+    $ms = $main['scores'] ?? [];
+    $labelMap = ['on_page' => 'on-page SEO', 'performance' => 'page speed', 'dns_domain' => 'domain & email setup', 'design' => 'design'];
+    $bullets = [];
+    foreach ($competitors as $c) {
+        $cs = $c['scores'] ?? [];
+        $deltas = [];
+        foreach ($labelMap as $k => $lab) {
+            $mine = $ms[$k] ?? null; $theirs = $cs[$k] ?? null;
+            if ($mine === null || $theirs === null) continue;
+            $deltas[] = ['k' => $lab, 'diff' => (int)$mine - (int)$theirs, 'mine' => (int)$mine, 'theirs' => (int)$theirs];
+        }
+        usort($deltas, fn($a, $b) => abs($b['diff']) <=> abs($a['diff']));
+        $host = $c['host'] ?? 'their site';
+        foreach (array_slice($deltas, 0, 2) as $d) {
+            if (abs($d['diff']) < 5) continue;
+            if ($d['diff'] > 0) $bullets[] = "You lead {$host} on {$d['k']} by {$d['diff']} points ({$d['mine']} vs {$d['theirs']}).";
+            else $bullets[] = ucfirst($host) . " is ahead of you on {$d['k']} by " . abs($d['diff']) . " points ({$d['theirs']} vs {$d['mine']}) - a clear win for you to take.";
+        }
+        $mo = $main['opportunity_count'] ?? null;
+        if ($mo !== null && isset($c['opportunity_count'])) {
+            if ($c['opportunity_count'] > $mo) $bullets[] = "You have {$mo} fixable issues vs {$c['opportunity_count']} on {$host} - you're in better shape.";
+            elseif ($c['opportunity_count'] < $mo) $bullets[] = "{$host} has fewer issues to fix than you ({$c['opportunity_count']} vs {$mo}) - worth closing the gap.";
+        }
+    }
+    $bullets = array_slice(array_values(array_unique($bullets)), 0, 4);
+    return ['headline' => $bullets ? 'How you compare to your competitors' : null, 'bullets' => $bullets];
+}
+
 function stellio_build_ai_take(array $opts): ?array {
     $url = $opts['url'] ?? '';
     $OPENAI_KEY = $opts['key'] ?? '';
@@ -959,11 +1058,16 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     $psiData = null;
     $psiKeyParam = $GOOGLE_PSI_KEY ? "&key={$GOOGLE_PSI_KEY}" : '';
     $psiCache = cache_get('psi_' . md5($targetUrl), 21600);
-    if ($psiCache !== null) {
+    // Only reuse a cached PSI body that actually carries Lighthouse results -
+    // an error/empty body cached earlier would otherwise poison the run for 6h.
+    if ($psiCache !== null && isset($psiCache['lighthouseResult']['categories'])) {
         $psiData = $psiCache;
     } else {
         $psi = fetch("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=" . urlencode($targetUrl) . "&strategy=mobile&category=performance&category=accessibility&category=best-practices&category=seo{$psiKeyParam}", ['timeout' => 60]);
-        if ($psi['status'] === 200) { $psiData = json_decode($psi['body'], true); cache_set('psi_' . md5($targetUrl), $psiData); }
+        if ($psi['status'] === 200) {
+            $psiData = json_decode($psi['body'], true);
+            if (isset($psiData['lighthouseResult']['categories'])) cache_set('psi_' . md5($targetUrl), $psiData);
+        }
     }
 
     $perfChecks = [];
@@ -1012,6 +1116,18 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
         }
     } else {
         $perfChecks[] = finding('Performance', 'Lighthouse scan', 'Google PageSpeed quota reached - lab metrics unavailable this run', true, 'low', '');
+    }
+
+    // Accessibility / best-practices / SEO + page weight from the Lighthouse
+    // data already fetched above (no extra API calls).
+    $audits = $audits ?? [];
+    $qualityChecks = stellio_quality_checks($psiScores, $audits);
+    $pageWeight = stellio_page_weight($audits);
+    if ($pageWeight) {
+        $pwDetail = "Homepage is {$pageWeight['mb']} MB"
+            . ($pageWeight['requests'] ? " across {$pageWeight['requests']} requests" : '')
+            . " - a 4G visitor waits ~{$pageWeight['est_4g_s']}s to load it.";
+        $qualityChecks[] = finding('Performance', 'Page weight & mobile load', $pwDetail, $pageWeight['pass'], 'medium', 'Compress images (WebP), defer non-critical JS and cache assets to slim the page.');
     }
 
     $perfScore = scoreFromChecks($perfChecks);
@@ -1142,6 +1258,12 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     }
     if ($brokenLinks) $onPageChecks[] = finding('Crawlability', 'Broken internal links', count($brokenLinks) . ' broken internal link(s) e.g. ' . $brokenLinks[0]['url'], false, 'high', 'Fix or remove broken internal links - they waste crawl budget and frustrate visitors.');
 
+    // ---------- CONVERSION & TRUST (from the page HTML) ----------
+    // Surfaced as their own response panels, not merged into findings, so we
+    // don't duplicate the Trust/Conversion checks the on-page pass already runs.
+    $conversion = stellio_conversion_checks($html);
+    $trust = stellio_trust_checks($html);
+
     // Recompute the on-page score now that the new checks are included
     $onPageScore = scoreFromChecks($onPageChecks);
 
@@ -1167,8 +1289,17 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     ]);
 
     // ---------- OPPORTUNITIES (sorted by impact) ----------
-    $allChecks = array_merge($onPageChecks, $dnsChecks, $perfChecks);
+    $allChecks = array_merge($onPageChecks, $dnsChecks, $perfChecks, $qualityChecks ?? []);
     $opportunities = array_values(array_filter($allChecks, fn($c) => !$c['passed']));
+    // De-dupe by title (a11y/SEO audits can repeat an on-page finding)
+    $seenTitles = []; $deduped = [];
+    foreach ($opportunities as $o) {
+        $k = strtolower(trim($o['title'] ?? ''));
+        if ($k === '' || isset($seenTitles[$k])) continue;
+        $seenTitles[$k] = true;
+        $deduped[] = $o;
+    }
+    $opportunities = $deduped;
     $impactOrder = ['critical' => 0, 'high' => 1, 'medium' => 2, 'low' => 3];
     usort($opportunities, fn($a, $b) => ($impactOrder[$a['impact']] ?? 4) <=> ($impactOrder[$b['impact']] ?? 4));
 
@@ -1236,6 +1367,10 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
         'benchmark' => $benchmark,
         'suggestions' => $suggestions,
         'checks' => $allChecks,
+        'conversion' => $conversion,
+        'trust' => $trust,
+        'page_weight' => $pageWeight,
+        'competitor_gap' => ['headline' => null, 'bullets' => []],
         'opportunities' => array_slice($opportunities, 0, 25),
         'opportunity_count' => count($opportunities),
         'competitors' => [],
@@ -1284,6 +1419,7 @@ if ($action === 'audit') {
     if (!$result['ok']) { http_response_code(502); echo json_encode(['error' => $result['error']]); exit; }
 
     $result['data']['competitors'] = $competitors;
+    $result['data']['competitor_gap'] = stellio_competitor_gap($result['data'], $competitors);
     $result['data']['ai_take'] = stellio_build_ai_take([
         'url' => $targetUrl, 'key' => $OPENAI_KEY, 'model' => $AI_MODEL,
         'scores' => $result['data']['scores'] ?? [],

@@ -355,6 +355,86 @@ function ComparisonPanel({ result }) {
       ) : (
         <p className="text-[0.82rem] text-[#22C55E] mt-4 font-600">You're ahead of your competitors on everything we checked. The list below is about staying ahead.</p>
       )}
+      {result.competitor_gap?.bullets?.length > 0 && (
+        <ul className="mt-4 space-y-1.5 border-t border-white/[0.06] pt-4">
+          {result.competitor_gap.bullets.map((b, i) => (
+            <li key={i} className="text-[0.82rem] text-[#A1A1AA] leading-snug flex gap-2">
+              <span className="text-[#FB5005] shrink-0">→</span>{b}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function LighthousePanel({ psi, weight }) {
+  const rows = [
+    ['Accessibility', psi?.accessibility],
+    ['Best Practices', psi?.['best-practices']],
+    ['SEO', psi?.seo],
+  ].filter(r => r[1] !== null && r[1] !== undefined)
+  if (!rows.length && !weight) return null
+  const tone = (v) => v >= 90 ? 'text-[#22C55E]' : v >= 50 ? 'text-amber-400' : 'text-[#EF4444]'
+  return (
+    <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 sm:p-8 mb-8">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-[0.62rem] font-600 uppercase tracking-[0.14em] text-[#FB5005]">Deeper checks</span>
+        <span className="h-px flex-1 bg-[#FB5005]/20" />
+      </div>
+      {rows.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          {rows.map(([label, v]) => (
+            <div key={label} className="bg-[#0E0E0E] border border-white/[0.05] rounded-xl p-4 text-center">
+              <div className={`font-[Satoshi] text-[1.6rem] font-700 leading-none ${tone(v)}`}>{v}</div>
+              <div className="text-[0.66rem] uppercase tracking-wider text-[#71717A] mt-1.5">{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {weight && (
+        <div className="mt-4 flex items-start gap-3 bg-[#0E0E0E] border border-white/[0.05] rounded-xl p-4">
+          <div className="text-[1.5rem] font-700 text-[#FAFAFA] leading-none shrink-0">
+            {weight.mb}<span className="text-[0.7rem] font-500 text-[#71717A]"> MB</span>
+          </div>
+          <div className="text-[0.82rem] text-[#A1A1AA] leading-snug">
+            {weight.requests ? <>across <b className="text-[#FAFAFA]">{weight.requests}</b> requests. </> : null}
+            A 4G visitor waits about <b className={weight.pass ? 'text-[#22C55E]' : 'text-[#EF4444]'}>~{weight.est_4g_s}s</b> to load this page.
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ChecklistPanel({ conversion, trust }) {
+  const conv = conversion || []
+  const tr = trust || []
+  if (!conv.length && !tr.length) return null
+  const Row = ({ item }) => (
+    <li className="flex items-start gap-2.5 py-1.5">
+      <span className={`mt-0.5 w-4 h-4 shrink-0 rounded-full flex items-center justify-center text-[10px] font-700 ${item.pass ? 'bg-[#22C55E]/15 text-[#22C55E]' : 'bg-[#EF4444]/15 text-[#EF4444]'}`}>
+        {item.pass ? '✓' : '✕'}
+      </span>
+      <span className={`text-[0.86rem] leading-snug ${item.pass ? 'text-[#A1A1AA]' : 'text-[#FAFAFA] font-500'}`}>{item.label}</span>
+    </li>
+  )
+  return (
+    <div className="grid sm:grid-cols-2 gap-4 mb-8">
+      {conv.length > 0 && (
+        <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6">
+          <h3 className="text-[1rem] font-700 text-[#FAFAFA] mb-1">Getting more enquiries</h3>
+          <p className="text-[0.76rem] text-[#71717A] mb-3">How easy it is for a visitor to contact you.</p>
+          <ul>{conv.map(c => <Row key={c.key} item={c} />)}</ul>
+        </div>
+      )}
+      {tr.length > 0 && (
+        <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6">
+          <h3 className="text-[1rem] font-700 text-[#FAFAFA] mb-1">Trust signals</h3>
+          <p className="text-[0.76rem] text-[#71717A] mb-3">What makes a stranger comfortable to buy.</p>
+          <ul>{tr.map(c => <Row key={c.key} item={c} />)}</ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -719,6 +799,9 @@ export default function SiteAudit() {
                 ))}
               </div>
 
+              {/* Deeper Lighthouse checks + page weight */}
+              <LighthousePanel psi={result.psi_scores} weight={result.page_weight} />
+
               {/* Benchmark vs typical local business */}
               <BenchmarkPanel b={result.benchmark} scores={result.scores} overall={result.overall_score} />
 
@@ -727,6 +810,9 @@ export default function SiteAudit() {
 
               {/* You vs competitors */}
               <ComparisonPanel result={result} />
+
+              {/* Conversion + trust checklists */}
+              <ChecklistPanel conversion={result.conversion} trust={result.trust} />
 
               {/* AI Design panel */}
               <div className="mb-8">

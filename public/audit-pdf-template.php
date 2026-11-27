@@ -134,6 +134,54 @@ function stellio_audit_html(array $audit, string $fontsCss): string {
             . '<thead><tr>' . $headCells . '</tr></thead><tbody>' . $cRows . '</tbody></table></div>';
     }
 
+    // ---- Deeper Lighthouse checks + page weight ----
+    $extraHtml = '';
+    $psi = $audit['psi_scores'] ?? [];
+    $pw  = $audit['page_weight'] ?? null;
+    $deepCells = '';
+    foreach ([['Accessibility', $psi['accessibility'] ?? null], ['Best Practices', $psi['best-practices'] ?? null], ['SEO', $psi['seo'] ?? null]] as $row) {
+        if ($row[1] === null) continue;
+        $col = $row[1] >= 90 ? '#2E7D32' : ($row[1] >= 50 ? '#B23B00' : '#C62828');
+        $deepCells .= '<div style="border:1px solid #F2E3BC;border-radius:12px;padding:12px 14px;background:#FFFCF3;text-align:center">'
+            . '<div style="font-weight:600;font-size:22px;line-height:1;color:' . $col . '">' . (int)$row[1] . '</div>'
+            . '<div style="font-family:\'Geist Mono\',monospace;font-size:9px;letter-spacing:.1em;color:#5C574E;margin-top:6px;text-transform:uppercase">' . htmlspecialchars($row[0]) . '</div></div>';
+    }
+    if ($deepCells || $pw) {
+        $extraHtml .= '<div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #F2E3BC;padding-top:18px">'
+            . '<span style="font-family:\'Geist Mono\',monospace;font-weight:600;font-size:10px;letter-spacing:.14em;color:#5C574E">DEEPER CHECKS</span>';
+        if ($deepCells) $extraHtml .= '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">' . $deepCells . '</div>';
+        if ($pw) {
+            $extraHtml .= '<div style="border:1px solid #F2E3BC;border-radius:12px;padding:12px 14px;background:#FFFCF3;display:flex;gap:14px;align-items:baseline">'
+                . '<span style="font-weight:600;font-size:22px;color:#0D0D0D;white-space:nowrap">' . $pw['mb'] . '<span style="font-size:11px;color:#8C8578"> MB</span></span>'
+                . '<span style="font-size:12px;line-height:1.4;color:#2B2A28">'
+                . (!empty($pw['requests']) ? 'across ' . (int)$pw['requests'] . ' requests. ' : '')
+                . 'A 4G visitor waits about <b style="color:' . (!empty($pw['pass']) ? '#2E7D32' : '#C62828') . '">~' . $pw['est_4g_s'] . 's</b> to load this page.</span></div>';
+        }
+        $extraHtml .= '</div>';
+    }
+
+    // ---- Conversion + trust checklists ----
+    $conv = $audit['conversion'] ?? [];
+    $tr   = $audit['trust'] ?? [];
+    if ($conv || $tr) {
+        $renderList = function (array $items): string {
+            $out = '';
+            foreach ($items as $it) {
+                $ok = !empty($it['pass']);
+                $out .= '<div style="display:flex;gap:7px;align-items:flex-start;padding:3px 0">'
+                    . '<span style="font-weight:700;font-size:12px;color:' . ($ok ? '#2E7D32' : '#C62828') . '">' . ($ok ? '&#10003;' : '&#10007;') . '</span>'
+                    . '<span style="font-size:12px;line-height:1.4;color:' . ($ok ? '#5C574E' : '#0D0D0D') . '">' . htmlspecialchars($it['label'] ?? '') . '</span></div>';
+            }
+            return $out;
+        };
+        $cols = '';
+        if ($conv) $cols .= '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px;color:#0D0D0D;margin-bottom:6px">Getting more enquiries</div>' . $renderList($conv) . '</div>';
+        if ($tr) $cols .= '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px;color:#0D0D0D;margin-bottom:6px">Trust signals</div>' . $renderList($tr) . '</div>';
+        $extraHtml .= '<div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #F2E3BC;padding-top:18px">'
+            . '<span style="font-family:\'Geist Mono\',monospace;font-weight:600;font-size:10px;letter-spacing:.14em;color:#5C574E">CONVERSION &amp; TRUST</span>'
+            . '<div style="display:flex;gap:28px">' . $cols . '</div></div>';
+    }
+
     // ---- Design recommendations ----
     $recsHtml = '';
     if ($recs) {
@@ -249,6 +297,9 @@ function stellio_audit_html(array $audit, string $fontsCss): string {
 
         // You vs competitors
         . $compHtml
+
+        // Deeper checks + page weight + conversion/trust
+        . $extraHtml
 
         // AI design section
         . $designSection
