@@ -294,6 +294,104 @@ function queue_pdf_job(string $email, array $auditData): bool {
 }
 
 /** Build a findings summary string (for the admin notification email) */
+// Map every finding to an effort band for the "DIY vs needs a pro" split that
+// turns a checklist into a buy signal: quick wins an owner can do themselves,
+// everything else is a reason to talk.
+function stellio_effort_tag(array $o): array {
+    $t = strtolower(($o['title'] ?? '') . ' ' . ($o['category'] ?? '') . ' ' . ($o['fix'] ?? ''));
+    $designKw = ['typography', 'whitespace', 'colour contrast', 'spacing', 'visual hierarchy', 'design'];
+    foreach ($designKw as $k) if (stripos($t, $k) !== false) {
+        $o['effort'] = ['band' => 'pro', 'min' => 'A design pass', 'diy' => false, 'label' => 'Needs design work'];
+        return $o;
+    }
+    $quick = ['meta description', 'title tag', 'duplicate', 'social', 'contact email', 'phone number', 'copyright', 'open graph', 'favicon', 'viewport', 'alt text', 'reviews', 'testimonial'];
+    foreach ($quick as $k) if (stripos($t, $k) !== false) {
+        $o['effort'] = ['band' => 'quick', 'min' => '~15 minutes', 'diy' => true, 'label' => 'Quick win - you can fix it'];
+        return $o;
+    }
+    $standard = ['canonical', 'h1', 'structured data', 'json-ld', 'subpage', 'sitemap', 'content', 'analytics', 'consent', 'cookie', 'broken'];
+    foreach ($standard as $k) if (stripos($t, $k) !== false) {
+        $o['effort'] = ['band' => 'standard', 'min' => 'A few hours', 'diy' => false, 'label' => 'Worth a professional'];
+        return $o;
+    }
+    $o['effort'] = ['band' => 'pro', 'min' => 'Professional task', 'diy' => false, 'label' => 'Needs a professional'];
+    return $o;
+}
+
+// Plain-English "Stellio's take" - reuses the same cheap OpenAI model as the
+// design review to turn the score + issues + competitor gap into a human
+// paragraph and one concrete next step. Cached 6h.
+function stellio_build_ai_take(array $opts): ?array {
+    $url = $opts['url'] ?? '';
+    $OPENAI_KEY = $opts['key'] ?? '';
+    $AI_MODEL = $opts['model'] ?? 'gpt-4o-mini';
+    $cached = cache_get('take_' . md5($url), 21600);
+    if ($cached !== null) return $cached;
+    if (!$OPENAI_KEY || $OPENAI_KEY === 'REPLACE_WITH_OPENAI_KEY') return null;
+
+    $s = $opts['scores'] ?? [];
+    $opps = array_slice($opts['opportunities'] ?? [], 0, 6);
+    $oppLines = [];
+    foreach ($opps as $o) $oppLines[] = '- [' . strtoupper($o['impact'] ?? 'medium') . '] ' . ($o['title'] ?? '');
+    $ai = $opts['ai_design'] ?? [];
+    $op = $s['on_page'] ?? 'n/a';
+    $pp = $s['performance'] ?? 'n/a';
+    $dp = $s['dns_domain'] ?? 'n/a';
+    $des = $ai['design_score'] ?? 'n/a';
+    $context = "Website {$url}. Scores - on-page {$op}, performance {$pp}, DNS & domain {$dp}, AI design {$des}.\nIssues found:\n" . implode("\n", $oppLines);
+    $comp = $opts['competitors'] ?? [];
+    if ($comp) {
+        $context .= "\n\nHow they compare to competitors:";
+        foreach ($comp as $c) $context .= "\n- {$c['host']}: on-page {$c['scores']['on_page']}, performance {$c['scores']['performance']}, DNS {$c['scores']['dns_domain']}, {$c['opportunity_count']} issues.";
+    }
+
+    $prompt = <<<PROMPT
+You are writing the plain-English "Stellio's take" paragraph for a free website audit a small business owner has just run. Australian English spelling (optimise, colour, prioritise). Be honest, specific and human. NO hype, NO jargon.
+Context:
+$context
+
+Return STRICT JSON only, no markdown fences:
+{"headline":"<one short punchy sentence under 90 characters>","body":"<2-4 sentences: what is genuinely good first, then the 1-2 things that actually matter most and what they cost the owner>","next_action":"<one concrete recommended first step, worded as a direct instruction to the owner>"}
+PROMPT;
+
+    $payload = json_encode(['model' => $AI_MODEL, 'messages' => [['role' => 'user', 'content' => $prompt]], 'max_tokens' => 420, 'temperature' => 0.5]);
+    $r = fetch('https://api.openai.com/v1/chat/completions', ['post' => $payload, 'headers' => ['Content-Type: application/json', 'Authorization: Bearer ' . $OPENAI_KEY], 'timeout' => 60]);
+    if ($r['status'] !== 200) return null;
+    $data = json_decode(trim($r['body']), true);
+    $content = preg_replace('/^```(json)?\s*|\s*```$/', '', trim($data['choices'][0]['message']['content'] ?? ''));
+    $parsed = json_decode($content, true);
+    if (json_last_error() !== JSON_ERROR_NONE) return null;
+    $out = ['headline' => $parsed['headline'] ?? '', 'body' => $parsed['body'] ?? '', 'next_action' => $parsed['next_action'] ?? ''];
+    if ($out['headline'] === '' && $out['body'] === '') return null;
+    cache_set('take_' . md5($url), $out);
+    return $out;
+}
+
+// Fast snapshot of a competitor: same checks as the main audit but skips the
+// slow/subjective AI design + screenshot step. Cached 6h per host.
+function stellio_competitor_snapshot(string $url, string $key, string $psi, string $sb, string $sbAnon, string $model): ?array {
+    $host = parse_url($url, PHP_URL_HOST) ?: $url;
+    $cached = cache_get('comp_' . md5($host), 21600);
+    if ($cached) return $cached;
+    $r = stellio_run_audit($url, $key, $psi, $sb, $sbAnon, $model, true);
+    if (!($r['ok'] ?? false)) return null;
+    $d = $r['data'] ?? [];
+    $sc = $d['scores'] ?? [];
+    if (empty($sc['on_page'])) return null;
+    $ov = (int)round(($sc['on_page'] ?? 70) * 0.4 + ($sc['performance'] ?? 70) * 0.4 + ($sc['dns_domain'] ?? 70) * 0.2);
+    $snap = [
+        'url' => $d['url'] ?? $url,
+        'host' => $host,
+        'scores' => ['on_page' => (int)$sc['on_page'], 'performance' => (int)$sc['performance'], 'dns_domain' => (int)$sc['dns_domain']],
+        'overall' => $ov,
+        'ttfb_ms' => $d['page']['ttfb_ms'] ?? null,
+        'opportunity_count' => $d['opportunity_count'] ?? 0,
+        'top_issues' => array_values(array_slice(array_map(fn($o) => $o['title'] ?? '', $d['opportunities'] ?? []), 0, 4)),
+    ];
+    cache_set('comp_' . md5($host), $snap);
+    return $snap;
+}
+
 function stellio_findings_summary(array $audit): string {
     $s = $audit['scores'] ?? [];
     $lines = [
@@ -509,7 +607,7 @@ if ($action === 'send_pdf') {
 if ($method !== 'POST') { http_response_code(405); echo json_encode(['error' => 'Method not allowed']); exit; }
 
 // ---------- DEFAULT action=audit ----------
-function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE_PSI_KEY, string $SB_URL = '', string $SB_ANON = '', string $AI_MODEL = 'gpt-4o-mini'): array {
+function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE_PSI_KEY, string $SB_URL = '', string $SB_ANON = '', string $AI_MODEL = 'gpt-4o-mini', bool $skipDesign = false): array {
     // ---------- Normalise + validate ----------
     if (!preg_match('#^https?://#i', $targetUrl)) $targetUrl = 'https://' . $targetUrl;
     $host = parse_url($targetUrl, PHP_URL_HOST);
@@ -879,6 +977,7 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     $aiDesign = null;
     $screenshotUrl = null;
 
+    if (!$skipDesign) {
     // Cached design critique - skip repeat microlink + vision cost on re-audits
     $designCache = cache_get('design_' . md5($targetUrl), 21600);
     if ($designCache !== null) {
@@ -933,6 +1032,7 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     if ($aiDesign !== null) cache_set('design_' . md5($targetUrl), $aiDesign);
     }
 
+    }
     $designScore = $aiDesign['design_score'] ?? null;
 
     // ---------- 5. MULTI-PAGE SCAN (sitemap) + BROKEN LINKS ----------
@@ -1044,6 +1144,9 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
         usort($opportunities, fn($a, $b) => ($impactOrder[$a['impact']] ?? 4) <=> ($impactOrder[$b['impact']] ?? 4));
     }
 
+    // Attach a DIY-vs-pro effort band to every remaining opportunity
+    $opportunities = array_map('stellio_effort_tag', $opportunities);
+
     // ---------- SUGGESTIONS (score-neutral, optional advice, NOT findings) ----------
     $suggestions = [];
     // Live chat is always offered as an OPTIONAL suggestion (never a scored
@@ -1088,6 +1191,8 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
         'checks' => $allChecks,
         'opportunities' => array_slice($opportunities, 0, 25),
         'opportunity_count' => count($opportunities),
+        'competitors' => [],
+        'ai_take' => null,
     ];
 
     // Server-side analytics log (fixes admin panel gap - browser inserts were unreliable)
@@ -1113,8 +1218,32 @@ if ($action === 'audit') {
     if (!$targetUrl) { http_response_code(400); echo json_encode(['error' => 'Missing url']); exit; }
     $rl = rateLimitAction('audit', 4, 40);
     if ($rl) { http_response_code(429); echo json_encode(['error' => $rl]); exit; }
+
+    // Optional competitor snapshots (up to 2) - same audit, no AI design step.
+    // Runs inside this request so it counts as one rate-limit slot.
+    $competitors = [];
+    $compReq = $input['competitors'] ?? [];
+    if (!is_array($compReq)) $compReq = [$compReq];
+    foreach ($compReq as $c) {
+        if (count($competitors) >= 2) break;
+        $c = trim((string)$c);
+        if ($c === '') continue;
+        if (!preg_match('#^https?://#i', $c)) $c = 'https://' . $c;
+        $snap = stellio_competitor_snapshot($c, $OPENAI_KEY, $GOOGLE_PSI_KEY, $SB_URL, $SB_ANON, $AI_MODEL);
+        if ($snap) $competitors[] = $snap;
+    }
+
     $result = stellio_run_audit($targetUrl, $OPENAI_KEY, $GOOGLE_PSI_KEY, $SB_URL, $SB_ANON, $AI_MODEL);
     if (!$result['ok']) { http_response_code(502); echo json_encode(['error' => $result['error']]); exit; }
+
+    $result['data']['competitors'] = $competitors;
+    $result['data']['ai_take'] = stellio_build_ai_take([
+        'url' => $targetUrl, 'key' => $OPENAI_KEY, 'model' => $AI_MODEL,
+        'scores' => $result['data']['scores'] ?? [],
+        'opportunities' => $result['data']['opportunities'] ?? [],
+        'ai_design' => $result['data']['ai_design'] ?? [],
+        'competitors' => $competitors,
+    ]);
     echo json_encode($result['data'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }

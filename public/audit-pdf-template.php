@@ -89,6 +89,51 @@ function stellio_audit_html(array $audit, string $fontsCss): string {
         }
     }
 
+    // ---- Stellio's take (plain-English AI summary) ----
+    $takeHtml = '';
+    $take = $audit['ai_take'] ?? null;
+    if ($take && !empty($take['headline'])) {
+        $takeHtml = '<div style="border-left:3px solid #FF520E;padding:6px 0 6px 18px;display:flex;flex-direction:column;gap:8px">'
+            . '<span style="font-family:\'Geist Mono\',monospace;font-weight:600;font-size:10px;letter-spacing:.14em;color:#FF520E">STELLIO\'S TAKE</span>'
+            . '<span style="font-size:19px;line-height:1.3;font-weight:500;letter-spacing:-.01em;color:#0D0D0D">' . htmlspecialchars($take['headline']) . '</span>'
+            . (isset($take['body']) ? '<span style="font-size:12.5px;line-height:1.5;color:#2B2A28">' . htmlspecialchars($take['body']) . '</span>' : '')
+            . (isset($take['next_action']) ? '<span style="font-size:12px;font-weight:600;color:#0D0D0D">NEXT STEP: ' . htmlspecialchars($take['next_action']) . '</span>' : '')
+            . '</div>';
+    }
+
+    // ---- You vs competitors ----
+    $compHtml = '';
+    $comps = $audit['competitors'] ?? [];
+    if ($comps) {
+        $rows = [
+            ['Overall', $overall, 'overall', false],
+            ['On-Page & SEO', $s['on_page'] ?? null, 'on_page', false],
+            ['Performance', $s['performance'] ?? null, 'performance', false],
+            ['DNS & Domain', $s['dns_domain'] ?? null, 'dns_domain', false],
+            ['Issues found', count($audit['opportunities'] ?? []), 'opportunity_count', true],
+        ];
+        $cRows = '';
+        foreach ($rows as $row) {
+            [$label, $mine, $key, $lowerBetter] = $row;
+            $cRows .= '<tr>'
+                . '<td style="padding:8px 10px;border-bottom:1px solid #F2E3BC;font-family:\'Geist Mono\',monospace;font-weight:600;font-size:10px;letter-spacing:.08em;color:#5C574E;white-space:nowrap">' . htmlspecialchars($label) . '</td>'
+                . '<td style="padding:8px 10px;border-bottom:1px solid #F2E3BC;text-align:center;font-weight:600;font-size:13px;color:#0D0D0D;background:#FFF7E0">' . ($mine === null ? '-' : $mine) . '</td>';
+            foreach ($comps as $c) {
+                $val = $key === 'opportunity_count' ? ($c['opportunity_count'] ?? null) : ($c['scores'][$key] ?? null);
+                $ahead = $mine !== null && $val !== null && ($lowerBetter ? $val < $mine : $val > $mine);
+                $cRows .= '<td style="padding:8px 10px;border-bottom:1px solid #F2E3BC;text-align:center;font-size:13px;color:' . ($ahead ? '#2E7D32' : '#2B2A28') . '">' . ($val === null ? '-' : $val) . '</td>';
+            }
+            $cRows .= '</tr>';
+        }
+        $headCells = '<td style="padding:8px 10px;font-family:\'Geist Mono\',monospace;font-weight:600;font-size:9px;letter-spacing:.12em;color:#8C8578">CHECK</td>'
+            . '<td style="padding:8px 10px;text-align:center;font-family:\'Geist Mono\',monospace;font-weight:600;font-size:9px;letter-spacing:.12em;color:#FF520E">YOUR SITE</td>';
+        foreach ($comps as $c) $headCells .= '<td style="padding:8px 10px;text-align:center;font-family:\'Geist Mono\',monospace;font-weight:600;font-size:9px;letter-spacing:.08em;color:#5C574E">' . htmlspecialchars($c['host']) . '</td>';
+        $compHtml = '<div style="display:flex;flex-direction:column;gap:10px;border-top:1px solid #F2E3BC;padding-top:18px">'
+            . '<span style="font-family:\'Geist Mono\',monospace;font-weight:600;font-size:10px;letter-spacing:.14em;color:#5C574E">YOU VS COMPETITORS</span>'
+            . '<table style="width:100%;border-collapse:collapse;border:1px solid #F2E3BC;background:#FFFCF3">'
+            . '<thead><tr>' . $headCells . '</tr></thead><tbody>' . $cRows . '</tbody></table></div>';
+    }
+
     // ---- Design recommendations ----
     $recsHtml = '';
     if ($recs) {
@@ -113,12 +158,19 @@ function stellio_audit_html(array $audit, string $fontsCss): string {
                 . '<span style="font-family:\'Geist Mono\',monospace;font-weight:600;font-size:10px;letter-spacing:.14em;color:#0D0D0D">FIX: </span>'
                 . htmlspecialchars($o['fix']) . '</span>';
         }
+        $eff = $o['effort'] ?? null;
+        $effortHtml = '';
+        if ($eff && !empty($eff['label'])) {
+            $effortHtml = '<span style="display:inline-block;font-size:10px;font-weight:600;letter-spacing:.04em;color:' . (!empty($eff['diy']) ? '#2E7D32' : '#B23B00') . '">'
+                . htmlspecialchars($eff['label']) . ' &middot; ' . htmlspecialchars($eff['min']) . '</span>';
+        }
         $oppsHtml[] = '<div class="opp-row" style="display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;padding:9px 0;border-bottom:1px solid #F2E3BC;align-items:start;break-inside:avoid">'
             . '<span style="font-family:\'Geist Mono\',monospace;font-weight:600;font-size:11.5px;color:#FF520E;padding-top:2px">' . sprintf('%02d', $i + 1) . '</span>'
             . '<div style="display:flex;flex-direction:column;gap:3px">'
             . '<span style="font-weight:500;font-size:14px;letter-spacing:-.01em;color:#0D0D0D">' . htmlspecialchars($o['title'] ?? '') . '</span>'
             . '<span style="font-size:12px;line-height:1.45;color:#2B2A28">' . htmlspecialchars($o['detail'] ?? '') . '</span>'
             . $fix
+            . $effortHtml
             . '</div>'
             . stellio_badge_html($o['impact'] ?? 'medium')
             . '</div>';
@@ -191,6 +243,12 @@ function stellio_audit_html(array $audit, string $fontsCss): string {
 
         // benchmark strip
         . $benchHtml
+
+        // Stellio's take - plain-English summary
+        . $takeHtml
+
+        // You vs competitors
+        . $compHtml
 
         // AI design section
         . $designSection

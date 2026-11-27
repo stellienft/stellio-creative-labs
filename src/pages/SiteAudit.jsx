@@ -131,6 +131,12 @@ const impactStyle = {
   info: 'text-sky-400 bg-sky-400/10 border-sky-400/20',
 }
 
+const effortStyle = {
+  quick: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+  standard: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+  pro: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
+}
+
 function OpportunityCard({ opp, i }) {
   return (
     <motion.div
@@ -153,6 +159,17 @@ function OpportunityCard({ opp, i }) {
         <p className="text-[0.74rem] text-[#71717A] leading-relaxed mt-2 pt-2 border-t border-white/[0.04]">
           <span className="text-[#FB5005] font-600">Fix: </span>{opp.fix}
         </p>
+      )}
+      {opp.effort && (
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/[0.04]">
+          <span className={`text-[0.58rem] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${effortStyle[opp.effort.band] || effortStyle.pro}`}>
+            {opp.effort.label}
+          </span>
+          <span className="text-[0.7rem] text-[#71717A]">{opp.effort.min}</span>
+          {opp.effort.diy && (
+            <span className="text-[0.62rem] font-600 text-emerald-400/90 ml-auto">DIY ✓</span>
+          )}
+        </div>
       )}
     </motion.div>
   )
@@ -241,8 +258,111 @@ function AiDesignPanel({ design, screenshotUrl }) {
   )
 }
 
+function AiTakePanel({ take }) {
+  if (!take) return null
+  return (
+    <div className="bg-gradient-to-br from-[#FB5005]/[0.09] to-transparent border border-[#FB5005]/25 rounded-2xl p-6 sm:p-8 mb-8 relative overflow-hidden">
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[0.62rem] font-600 uppercase tracking-[0.14em] text-[#FB5005]">Stellio's take</span>
+          <span className="h-px flex-1 bg-[#FB5005]/20" />
+        </div>
+        <h3 className="font-[Satoshi] text-[1.25rem] font-700 text-[#FAFAFA] mb-3 leading-snug">{take.headline}</h3>
+        <p className="text-[0.9rem] text-[#A1A1AA] leading-relaxed mb-5">{take.body}</p>
+        {take.next_action && (
+          <div className="inline-flex items-start gap-2.5 bg-[#FB5005] text-white text-[0.82rem] font-600 rounded-xl px-4 py-3 max-w-[560px]">
+            <svg className="w-4 h-4 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            {take.next_action}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ComparisonPanel({ result }) {
+  const comps = result.competitors || []
+  if (!comps.length) return null
+  const rows = [
+    { key: 'overall', label: 'Overall', mine: result.overall_score, theirs: comps.map(c => c.overall) },
+    { key: 'on_page', label: 'On-Page & SEO', mine: result.scores?.on_page, theirs: comps.map(c => c.scores?.on_page) },
+    { key: 'performance', label: 'Performance', mine: result.scores?.performance, theirs: comps.map(c => c.scores?.performance) },
+    { key: 'dns_domain', label: 'DNS & Domain', mine: result.scores?.dns_domain, theirs: comps.map(c => c.scores?.dns_domain) },
+    { key: 'issues', label: 'Issues found', mine: result.opportunity_count, theirs: comps.map(c => c.opportunity_count), lowerBetter: true },
+    { key: 'ttfb', label: 'First byte (speed)', mine: result.page?.ttfb_ms, theirs: comps.map(c => c.ttfb_ms), lowerBetter: true, ms: true },
+  ]
+  const beaters = []
+  comps.forEach((c, ci) => {
+    rows.forEach(r => {
+      if (r.mine == null || r.theirs[ci] == null) return
+      const mineWins = r.lowerBetter ? r.mine < r.theirs[ci] : r.mine > r.theirs[ci]
+      if (!mineWins) beaters.push(`${c.host} on ${r.label}`)
+    })
+  })
+  const fmt = (v, r) => {
+    if (v == null) return '—'
+    if (r.ms) return `${v}ms`
+    if (r.key === 'overall' || r.key === 'on_page' || r.key === 'performance' || r.key === 'dns_domain') return `${v}/100`
+    return v
+  }
+  const cellCls = (mine, theirs, r) => {
+    if (mine == null || theirs == null) return ''
+    const ahead = r.lowerBetter ? mine < theirs : mine > theirs
+    return ahead ? 'text-[#22C55E]' : 'text-[#EF4444]'
+  }
+  return (
+    <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 sm:p-8 mb-8">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-9 h-9 rounded-xl bg-[#FB5005]/10 border border-[#FB5005]/25 flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FB5005" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </div>
+        <div>
+          <h3 className="text-[1.05rem] font-700 text-[#FAFAFA]">You vs your competitors</h3>
+          <p className="text-[0.72rem] text-[#71717A]">The same checks run on {comps.map(c => c.host).join(' and ')}</p>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-[0.85rem]">
+          <thead>
+            <tr className="text-[0.62rem] font-600 uppercase tracking-wider text-[#71717A] border-b border-white/[0.08]">
+              <th className="py-2.5 pr-3 font-600">Check</th>
+              <th className="py-2.5 px-3 font-600 text-[#FB5005]">Your site</th>
+              {comps.map(c => <th key={c.host} className="py-2.5 px-3 font-600">{c.host}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.key} className="border-b border-white/[0.04]">
+                <td className="py-2.5 pr-3 text-[#A1A1AA]">{r.label}</td>
+                <td className={`py-2.5 px-3 font-700 ${comps.some((_, ci) => r.theirs[ci] != null && r.mine != null && !(r.lowerBetter ? r.mine < r.theirs[ci] : r.mine > r.theirs[ci])) ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>
+                  {fmt(r.mine, r)}
+                </td>
+                {comps.map((c, ci) => (
+                  <td key={c.host} className={`py-2.5 px-3 ${cellCls(r.theirs[ci], r.mine, r)}`}>
+                    {fmt(r.theirs[ci], r)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {beaters.length > 0 ? (
+        <p className="text-[0.82rem] text-[#A1A1AA] mt-4">
+          <span className="text-[#EF4444] font-600">{comps.map(c => c.host).join(' / ')}</span> is currently ahead of you on{' '}
+          {beaters.join(', ')}. That's usually the quickest conversation worth having.
+        </p>
+      ) : (
+        <p className="text-[0.82rem] text-[#22C55E] mt-4 font-600">You're ahead of your competitors on everything we checked. The list below is about staying ahead.</p>
+      )}
+    </div>
+  )
+}
+
 export default function SiteAudit() {
   const [url, setUrl] = useState('')
+  const [competitors, setCompetitors] = useState(['', ''])
+  const [showCompare, setShowCompare] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [scanStep, setScanStep] = useState(0)
   const [result, setResult] = useState(null)
@@ -298,7 +418,10 @@ export default function SiteAudit() {
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({
+          url: url.trim(),
+          competitors: competitors.map(c => c.trim()).filter(Boolean).slice(0, 2),
+        }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -336,6 +459,8 @@ export default function SiteAudit() {
           '',
           `TOP OPPORTUNITIES (${result.opportunity_count} total):`,
           ...result.opportunities.slice(0, 10).map((o, i) => `${i + 1}. [${(o.impact || 'medium').toUpperCase()}] ${o.title}: ${(o.detail || '').slice(0, 160)}${o.fix ? ` | Fix: ${o.fix.slice(0, 120)}` : ''}`),
+          ...(result.competitors || []).map(c => `COMPETITOR ${c.host}: on-page ${c.scores?.on_page ?? '-'}, perf ${c.scores?.performance ?? '-'}, DNS ${c.scores?.dns_domain ?? '-'}, ${c.opportunity_count} issues`),
+          result.ai_take ? `STELLIO'S TAKE: ${result.ai_take.headline} | ${result.ai_take.body}` : '',
         ].filter(Boolean).join('\n')
         supabase.from('submissions').insert({
           name: 'Site Audit Lead',
@@ -466,6 +591,32 @@ export default function SiteAudit() {
                   )}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowCompare(s => !s)}
+                className="mt-3 text-[0.78rem] font-600 text-[#A1A1AA] hover:text-[#FAFAFA] transition-colors inline-flex items-center gap-1.5"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+                {showCompare ? 'Hide competitor comparison' : 'Compare against competitors (optional)'}
+              </button>
+              {showCompare && (
+                <div className="mt-3 space-y-2 text-left">
+                  {[0, 1].map(idx => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-[0.7rem] text-[#71717A] w-6 shrink-0">vs {idx + 1}</span>
+                      <input
+                        type="text"
+                        value={competitors[idx] || ''}
+                        onChange={(e) => setCompetitors(prev => prev.map((v, i) => i === idx ? e.target.value : v))}
+                        placeholder={`competitor${idx + 1}.com.au`}
+                        disabled={scanning}
+                        className="flex-1 px-3.5 py-2.5 rounded-lg bg-[#111111] border border-white/[0.1] text-[#FAFAFA] text-[0.82rem] placeholder:text-[#71717A] focus:outline-none focus:border-[#FB5005] transition-colors"
+                      />
+                    </div>
+                  ))}
+                  <p className="text-[0.7rem] text-[#71717A]">Add up to 2 competitor sites - we audit them too and show you side-by-side.</p>
+                </div>
+              )}
               <p className="text-[0.75rem] text-[#71717A] mt-3 flex items-center justify-center gap-2 flex-wrap">
                   <span>Takes about 30 seconds. No signup required to see results.</span>
                   {auditCount !== null && (
@@ -570,6 +721,12 @@ export default function SiteAudit() {
 
               {/* Benchmark vs typical local business */}
               <BenchmarkPanel b={result.benchmark} scores={result.scores} overall={result.overall_score} />
+
+              {/* Stellio's take - plain-English summary */}
+              <AiTakePanel take={result.ai_take} />
+
+              {/* You vs competitors */}
+              <ComparisonPanel result={result} />
 
               {/* AI Design panel */}
               <div className="mb-8">
