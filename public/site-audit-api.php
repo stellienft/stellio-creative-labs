@@ -318,6 +318,49 @@ function stellio_effort_tag(array $o): array {
     return $o;
 }
 
+// Detect an existing live-chat widget in a page's HTML (Tawk, Crisp, LiveChat,
+// Tidio, Intercom, Drift, Zendesk, HubSpot, WhatsApp, Messenger, generic chat).
+// Also treats the page as "has chat" when the site itself is chat/messaging-
+// centric (its own product or meta copy), so we never recommend adding live
+// chat to a brand that already lives in chat. Used to suppress the "consider
+// live chat" suggestion - an optional, score-neutral piece of advice.
+function stellio_has_live_chat(string $html): bool {
+    $s = strtolower($html);
+    $patterns = [
+        'livechat', '__lc', 'lc_site_id', 'lc_exp', 'lc_window',
+        'tawk', 'tawk_api', 'tawkto',
+        'crisp', '$crisp', 'crisp-widget', 'snippet\\.crisp',
+        'intercom', 'intercomsettings', 'intercom-',
+        'zendesk', 'webwidget', 'dnnq', 'ekw20',
+        'drift', 'drift-widget', 'js\\.drift',
+        'zopim', 'zoid', 'zendeskchat', '.zendesk.',
+        'tidio', 'tidiochatapp', 'tidio-script', 'tac\\/on',
+        'chatra', 'coordinatorchat',
+        'jivo', 'jivosite',
+        'olark', 'liveperson', 'livepersonagent',
+        'gorgias', 'ship-support',
+        'wa\\.me\\/', 'api\\.whatsapp\\.com\\/send', 'whatsapp-button', 'tw-whatsapp', 'wameonline',
+        'm.me\\/', 'fb-send-to-messenger', 'messenger\\.com\\/t\\/',
+        'chat-widget', 'chatwidget', 'chat_js', 'chat-js', 'chatwidgetjs',
+    ];
+    foreach ($patterns as $p) {
+        if (preg_match('#' . $p . '#i', $s)) return true;
+    }
+    // The site's own copy is chat/messaging-heavy (e.g. chat is their product,
+    // like a messenger app) - recommending live chat would be embarrassing.
+    // Word-boundary match so "chatgpt"/"chatbot"/"ZapChat" don't trip it.
+    if (preg_match_all('/\b(message|messages|messaging|messenger|chat)\b/i', $s, $mm)) {
+        if (count($mm[0]) >= 8) return true;
+    }
+    if (preg_match('/<title[^>]*>(.*?)<\\/title>/is', $s, $m)) {
+        if (preg_match('/\\b(chat|messaging)\\b/', $m[1])) return true;
+    }
+    if (preg_match('/name="description" content="([^"]*)"/i', $html, $m)) {
+        if (preg_match('/\\b(chat|messaging)\\b/', strtolower($m[1]))) return true;
+    }
+    return false;
+}
+
 // Plain-English "Stellio's take" - reuses the same cheap OpenAI model as the
 // design review to turn the score + issues + competitor gap into a human
 // paragraph and one concrete next step. Cached 6h.
@@ -1152,19 +1195,23 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     // Live chat is always offered as an OPTIONAL suggestion (never a scored
     // problem). CrUX field data is unreliable in keyless PSI, so we don't gate
     // on it - but when real Chrome-traffic evidence IS present we escalate the
-    // wording from "when your traffic grows" to "add now".
-    $cruxPresent = !empty($cruxMetrics)
-        || !empty(($psiData['originLoadingExperience']['metrics'] ?? []));
-    $suggestions[] = [
-        'title' => $cruxPresent
-            ? 'Consider adding live chat for your active visitors'
-            : 'Consider live chat once your traffic grows',
-        'detail' => $cruxPresent
-            ? 'Your site has real Chrome traffic (CrUX field data present), so enquiries are coming in. A lightweight chat (WhatsApp, Messenger, Crisp or Tawk.to) lets visitors get answers instantly instead of abandoning a form. Optional - only add it if you have someone to respond.'
-            : 'Live chat is worth adding if and when enquiries pick up - a lightweight widget (WhatsApp, Messenger, Crisp or Tawk.to) lets visitors get answers on the fly instead of abandoning a form. Optional - defer until the site is getting steady traffic.',
-        'impact' => 'info',
-        'optional' => true,
-    ];
+    // wording from "when your traffic grows" to "add now". If the site ALREADY
+    // has a chat widget (Tawk/Crisp/LiveChat/Intercom/WhatsApp/etc.) we do not
+    // suggest adding one - that would be noise.
+    if (!stellio_has_live_chat($html)) {
+        $cruxPresent = !empty($cruxMetrics)
+            || !empty(($psiData['originLoadingExperience']['metrics'] ?? []));
+        $suggestions[] = [
+            'title' => $cruxPresent
+                ? 'Consider adding live chat for your active visitors'
+                : 'Consider live chat once your traffic grows',
+            'detail' => $cruxPresent
+                ? 'Your site has real Chrome traffic (CrUX field data present), so enquiries are coming in. A lightweight chat (WhatsApp, Messenger, Crisp or Tawk.to) lets visitors get answers instantly instead of abandoning a form. Optional - only add it if you have someone to respond.'
+                : 'Live chat is worth adding if and when enquiries pick up - a lightweight widget (WhatsApp, Messenger, Crisp or Tawk.to) lets visitors get answers on the fly instead of abandoning a form. Optional - defer until the site is getting steady traffic.',
+            'impact' => 'info',
+            'optional' => true,
+        ];
+    }
 
     // ---------- OUTPUT ----------
     $response = [
