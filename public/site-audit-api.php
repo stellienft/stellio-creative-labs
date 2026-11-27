@@ -28,13 +28,14 @@ function fetch(string $url, array $opts = []): array {
     $respHeaders = [];
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_FOLLOWLOCATION => empty($opts['nofollow']),
         CURLOPT_MAXREDIRS => 4,
         CURLOPT_TIMEOUT => $opts['timeout'] ?? 20,
         CURLOPT_CONNECTTIMEOUT => 8,
         CURLOPT_USERAGENT => $opts['ua'] ?? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 StellioAudit/1.0',
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_ENCODING => '',
         CURLOPT_HEADERFUNCTION => function ($ch, $hdrLine) use (&$respHeaders) {
             if (strpos($hdrLine, ':') !== false) {
                 list($k, $v) = explode(':', $hdrLine, 2);
@@ -64,6 +65,7 @@ function fetch(string $url, array $opts = []): array {
 function fetchParallel(array $requests): array {
     $mh = curl_multi_init();
     $handles = [];
+    $headers = [];
     foreach ($requests as $key => $opts) {
         $ch = curl_init($opts['url']);
         curl_setopt_array($ch, [
@@ -75,6 +77,14 @@ function fetchParallel(array $requests): array {
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 StellioAudit/1.0',
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_ENCODING => '',
+            CURLOPT_HEADERFUNCTION => function ($ch, $hdrLine) use (&$headers, $key) {
+                if (strpos($hdrLine, ':') !== false) {
+                    list($hk, $hv) = explode(':', $hdrLine, 2);
+                    $headers[$key][strtolower(trim($hk))] = trim($hv);
+                }
+                return strlen($hdrLine);
+            },
         ]);
         curl_multi_add_handle($mh, $ch);
         $handles[$key] = $ch;
@@ -90,6 +100,7 @@ function fetchParallel(array $requests): array {
             'finalUrl' => curl_getinfo($ch, CURLINFO_EFFECTIVE_URL),
             'size' => curl_getinfo($ch, CURLINFO_SIZE_DOWNLOAD),
             'time' => curl_getinfo($ch, CURLINFO_TOTAL_TIME),
+            'headers' => $headers[$key] ?? [],
         ];
         curl_multi_remove_handle($mh, $ch);
     }
@@ -584,7 +595,7 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     $hasPhone = (bool)preg_match('/href=["\']tel:|(\+?61|0)[\s-]?\(?[234578]\)?[\s-]?\d{4}[\s-]?\d{4}/i', $html);
     $onPageChecks[] = finding('Trust', 'Phone number', $hasPhone ? 'Phone number visible or click-to-call' : 'No phone number found', $hasPhone, 'medium', 'Show your phone number - local buyers trust businesses they can call.');
 
-    $hasEmailLink = (bool)preg_match('/href=["\']mailto:/i', $html);
+    $hasEmailLink = (bool)preg_match('/(href=["\']mailto:|cdn-cgi\/l\/email-protection)/i', $html);
     $onPageChecks[] = finding('Trust', 'Contact email', $hasEmailLink ? 'Email contact present' : 'No mailto contact found', $hasEmailLink, 'low', 'Make it easy to email you - a mailto link beats a contact form for trust.');
 
     $hasAddress = (bool)preg_match('/(QLD|NSW|VIC|SA|WA|TAS|NT|ACT|Australia|Abn|ABN)[\s:.]?\s?\d{0,11}/i', $html);
@@ -692,7 +703,7 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
 
     // HTTP -> HTTPS redirect
     if ($scheme === 'https') {
-        $httpChk = fetch('http://' . $host . '/', ['timeout' => 12]);
+        $httpChk = fetch('http://' . $host . '/', ['timeout' => 12, 'nofollow' => true]);
         $httpStatus = $httpChk['status'] ?? 0;
         $finalIsHttps = stripos($httpChk['finalUrl'] ?? '', 'https://') === 0;
         $locIsHttps = isset($httpChk['headers']['location']) && stripos($httpChk['headers']['location'], 'https://') === 0;
@@ -971,6 +982,7 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
             if ($h === '' || $h[0] === '#' || preg_match('~^(mailto:|tel:|javascript:|data:)~i', $h)) continue;
             if (!preg_match('~^(https?://|/)~i', $h)) continue;
             $abs = ($h[0] === '/') ? $scheme . '://' . $host . $h : $h;
+            if (strpos($abs, '/cdn-cgi/') !== false) continue; // Cloudflare infra (email-protection, challenges), not a site page
             if (strtolower((string)parse_url($abs, PHP_URL_HOST)) !== strtolower($host)) continue;
             $abs = preg_replace('/[?#].*$/', '', $abs);
             if (rtrim($abs, '/') === rtrim($targetUrl, '/')) continue;

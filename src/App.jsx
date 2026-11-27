@@ -28,6 +28,7 @@ import { AuthProvider } from './context/AuthContext'
 import { SettingsProvider } from './context/SettingsContext'
 import { AnalyticsProvider } from './context/AnalyticsContext'
 import { OrganizationSchema } from './components/JsonLd'
+import CookieConsent from './components/CookieConsent'
 
 const SmoothScrollContext = createContext(null)
 export const useSmoothScroll = () => useContext(SmoothScrollContext)
@@ -79,6 +80,20 @@ function App() {
   const isExample = location.pathname.startsWith('/examples/')
   const hideChrome = isAdmin || isExample || location.pathname === '/showcase'
 
+  // Keep a self-referencing canonical in the <head> for every SPA route
+  useEffect(() => {
+    let path = location.pathname
+    if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1)
+    const canonicalHref = 'https://stellio.com.au' + (path === '' ? '/' : path)
+    let link = document.querySelector('link[rel="canonical"]')
+    if (!link) {
+      link = document.createElement('link')
+      link.setAttribute('rel', 'canonical')
+      document.head.appendChild(link)
+    }
+    link.setAttribute('href', canonicalHref)
+  }, [location.pathname])
+
   return (
     <AuthProvider>
       <SettingsProvider>
@@ -112,6 +127,7 @@ function App() {
             <Route path="/:slug" element={<DynamicPage />} />
           </Routes>
           {!hideChrome && <Footer />}
+          <CookieConsent />
         </div>
       </SmoothScrollProvider>
       </AnalyticsProvider>

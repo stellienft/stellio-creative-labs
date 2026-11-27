@@ -35,25 +35,16 @@ export default function Hero() {
           <span className="text-[#71717A]">Brisbane, Australia</span>
         </motion.span>
 
-        {/* Display headline */}
-        <div className="mt-7 overflow-hidden">
+        {/* Display headline (single H1 for SEO) */}
+        <div className="mt-7">
           <motion.h1
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             transition={{ duration: 1, delay: 0.25, ease }}
             className="font-[Satoshi] font-900 text-[clamp(3.4rem,8.2vw,6.5rem)] leading-[0.98] tracking-[-0.045em]"
           >
-            Build Bold.
-          </motion.h1>
-        </div>
-        <div className="overflow-hidden">
-          <motion.h1
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            transition={{ duration: 1, delay: 0.38, ease }}
-            className="font-[Satoshi] font-900 text-[clamp(3.4rem,8.2vw,6.5rem)] leading-[0.98] tracking-[-0.045em]"
-          >
-            Launch <Em>Smarter.</Em>
+            <span className="block">Build Bold.</span>
+            <span className="block">Launch <Em>Smarter.</Em></span>
           </motion.h1>
         </div>
 

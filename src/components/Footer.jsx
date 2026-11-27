@@ -103,7 +103,7 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-[0.82rem] text-[#71717A]">© 2026 Stellio Creative Labs. All rights reserved.</p>
+          <p className="text-[0.82rem] text-[#71717A]">© {new Date().getFullYear()} Stellio Creative Labs. All rights reserved.</p>
           <div className="flex gap-6">
             <Link to="/privacy" className="text-[0.82rem] text-[#71717A] hover:text-[#FAFAFA] transition-colors">Privacy</Link>
             <Link to="/terms" className="text-[0.82rem] text-[#71717A] hover:text-[#FAFAFA] transition-colors">Terms</Link>
