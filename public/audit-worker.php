@@ -5,36 +5,140 @@ if (PHP_SAPI !== 'cli') { http_response_code(403); header('X-Robots-Tag: noindex
 /**
  * Stellio audit PDF queue worker - runs via cron every minute in CLI mode
  * (CLI PHP has exec/proc_open enabled; the FPM pool does not).
- * Processes pending jobs in audit-queue/: renders PDF + emails it via Elastic Email.
+ * 1) Processes pending PDF jobs in audit-queue/job_*.json (render PDF + email it).
+ *    Fails are requeued (up to 3 attempts) so transient errors self-heal.
+ * 2) Drains due follower-up emails from audit-queue/follow_*.json (soft nurture, [+2d]).
  */
 
 $queueDir = __DIR__ . '/audit-queue';
 if (!is_dir($queueDir)) { @mkdir($queueDir, 0750, true); }
-
-$jobs = glob($queueDir . '/job_*.json');
-if (!$jobs) exit(0); // nothing to do
+$now = time();
 
 require_once __DIR__ . '/audit-pdf-template.php';
 
 $cfg = @include __DIR__ . '/audit-config.php';
 $SB_URL = is_array($cfg) ? ($cfg['sb_url'] ?? '') : '';
 $SB_ANON = is_array($cfg) ? ($cfg['sb_anon'] ?? '') : '';
+$followupDays = is_array($cfg) ? (int)($cfg['followup_days'] ?? 2) : 2;
+if ($followupDays < 0) $followupDays = 0;
 
+// ---------- 1. PDF jobs ----------
+$jobs = (array)glob($queueDir . '/job_*.json');
 foreach ($jobs as $jobFile) {
     $job = json_decode((string)@file_get_contents($jobFile), true);
     @unlink($jobFile); // claim the job immediately so a slow render doesn't double-process
     if (!is_array($job) || empty($job['email']) || empty($job['audit'])) continue;
 
+    $attempts = (int)($job['attempts'] ?? 0) + 1;
+
     $pdf = stellio_build_audit_pdf_from_template($job['audit']);
     if (!$pdf['ok']) {
-        error_log('stellio audit pdf render failed: ' . ($pdf['error'] ?? 'unknown'));
+        error_log('stellio audit pdf render failed: ' . ($pdf['error'] ?? 'unknown') . ' (attempt ' . $attempts . ')');
+        if ($attempts >= 3) { stellio_alert_boss_failure($job['email'], $pdf['error'] ?? 'render error'); continue; }
+        $job['attempts'] = $attempts;
+        @file_put_contents($jobFile, json_encode($job)); // requeue for the next cron tick
         continue;
     }
 
-    // Inline the email send (mirror of stellio_email_pdf - kept here so the worker is standalone)
     $sent = stellio_worker_send_email($SB_URL, $SB_ANON, $job['email'], $job['audit'], $pdf['path'], $pdf['filename']);
-    if (!$sent) error_log('stellio audit pdf email failed for ' . $job['email']);
     @unlink($pdf['path']);
+
+    if (!$sent) {
+        error_log('stellio audit pdf email failed for ' . $job['email'] . ' (attempt ' . $attempts . ')');
+        if ($attempts >= 3) { stellio_alert_boss_failure($job['email'], 'email send error'); continue; }
+        $job['attempts'] = $attempts;
+        @file_put_contents($jobFile, json_encode($job));
+        continue;
+    }
+
+    // Success: schedule a simple +N-day follow-up (nurture, no spam)
+    if ($followupDays > 0) {
+        $audit = $job['audit'];
+        $host = $audit['host'] ?? parse_url($audit['url'] ?? '', PHP_URL_HOST) ?: 'site';
+        @file_put_contents($queueDir . '/follow_' . bin2hex(random_bytes(6)) . '.json', json_encode([
+            'email' => $job['email'],
+            'host' => $host,
+            'overall' => (int)($audit['overall_score'] ?? 0),
+            'created_at' => $now,
+            'due_at' => $now + $followupDays * 86400,
+        ]));
+    }
+}
+
+// ---------- 2. Due follow-up emails ----------
+$followUps = (array)glob($queueDir . '/follow_*.json');
+foreach ($followUps as $fuFile) {
+    $fu = json_decode((string)@file_get_contents($fuFile), true);
+    if (!is_array($fu) || empty($fu['email'])) { @unlink($fuFile); continue; }
+    if ((int)($fu['due_at'] ?? 0) > $now) continue; // not due yet - leave for a later tick
+    @unlink($fuFile); // claim
+    if (!stellio_send_followup($fu)) error_log('stellio audit follow-up email failed for ' . $fu['email']);
+}
+
+/** Warm follow-up email offering to walk the lead through their report. */
+function stellio_send_followup(array $fu): bool {
+    $emailCfg = @include __DIR__ . '/email-config.php';
+    $apiKey = is_array($emailCfg) ? ($emailCfg['elastic_email_api_key'] ?? '') : '';
+    $from = is_array($emailCfg) ? ($emailCfg['from_email'] ?? 'hello@stellio.com.au') : 'hello@stellio.com.au';
+    $fromName = is_array($emailCfg) ? ($emailCfg['from_name'] ?? 'Stellio Creative Labs') : 'Stellio Creative Labs';
+    if (!$apiKey) return false;
+
+    $host = (string)($fu['host'] ?? 'your site');
+    $overall = (int)($fu['overall'] ?? 0);
+    $html = '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;overflow:hidden;">'
+        . '<div style="background:#FB5005;padding:20px 28px;"><h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:700;font-family:Arial,sans-serif;">Did you get your audit report?</h1></div>'
+        . '<div style="padding:24px 28px;">'
+        . '<p style="font-size:14px;color:#111111;line-height:1.6;margin:0 0 14px;">Hey there,</p>'
+        . '<p style="font-size:14px;color:#111111;line-height:1.6;margin:0 0 14px;">A few days ago we sent you the full website audit report for <strong>' . htmlspecialchars($host) . '</strong> (scored ' . $overall . '/100).</p>'
+        . '<p style="font-size:14px;color:#111111;line-height:1.6;margin:0 0 14px;">If any of the fixes in it feel overwhelming, you do not have to handle them alone - we regularly help local businesses knock out the top issues in a single session.</p>'
+        . '<p style="font-size:14px;color:#111111;line-height:1.6;margin:0 0 20px;">Happy to walk you through the report line-by-line on a free call.</p>'
+        . '<p style="margin:0;"><a href="https://stellio.com.au/contact" style="display:inline-block;background:#FB5005;color:#ffffff;text-decoration:none;padding:12px 26px;border-radius:8px;font-size:14px;font-weight:700;">Book a free call</a></p>'
+        . '</div>'
+        . '<div style="padding:14px 28px;background:#fafafa;border-top:1px solid #eeeeee;">'
+        . '<p style="margin:0;font-size:12px;color:#888888;font-family:Arial,sans-serif;">Stellio Creative Labs - Build Bold. Launch Smarter. <a href="https://stellio.com.au" style="color:#FB5005;text-decoration:none;">stellio.com.au</a></p>'
+        . '</div></div>';
+
+    $fields = [
+        'apikey' => $apiKey, 'from' => $from, 'fromName' => $fromName,
+        'to' => $fu['email'],
+        'subject' => 'Re: your ' . $host . ' audit - want a hand with the fixes?',
+        'bodyHtml' => $html,
+        'bodyText' => 'A few days ago we sent the audit report for ' . $host . ' (scored ' . $overall . '/100). Happy to walk you through the top fixes on a free call: https://stellio.com.au/contact',
+        'isTransactional' => 'true',
+    ];
+    $ch = curl_init('https://api.elasticemail.com/v2/email/send');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query($fields),
+        CURLOPT_TIMEOUT => 30,
+    ]);
+    $body = curl_exec($ch);
+    curl_close($ch);
+    $json = json_decode((string)$body, true) ?: [];
+    return !empty($json['success']);
+}
+
+/** Surface a job that failed permanently (3 attempts) to the Boss inbox. */
+function stellio_alert_boss_failure(string $toEmail, string $reason): void {
+    $emailCfg = @include __DIR__ . '/email-config.php';
+    $apiKey = is_array($emailCfg) ? ($emailCfg['elastic_email_api_key'] ?? '') : '';
+    $from = is_array($emailCfg) ? ($emailCfg['from_email'] ?? 'hello@stellio.com.au') : 'hello@stellio.com.au';
+    if (!$apiKey) return;
+    $ch = curl_init('https://api.elasticemail.com/v2/email/send');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'apikey' => $apiKey, 'from' => $from,
+            'to' => 'hello@stellio.com.au',
+            'subject' => 'Audit PDF failed permanently for ' . $toEmail,
+            'bodyText' => 'The audit PDF for ' . $toEmail . ' could not be delivered after 3 attempts (' . $reason . '). Check the worker log.',
+            'isTransactional' => 'true',
+        ]),
+        CURLOPT_TIMEOUT => 30,
+    ]);
+    curl_exec($ch);
+    curl_close($ch);
 }
 
 /** Minimal Elastic Email send w/ attachment for the worker (multipart) */

@@ -25,6 +25,7 @@ $AI_MODEL = 'gpt-4o-mini';
 // ---------- Helpers ----------
 function fetch(string $url, array $opts = []): array {
     $ch = curl_init($url);
+    $respHeaders = [];
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
@@ -34,6 +35,13 @@ function fetch(string $url, array $opts = []): array {
         CURLOPT_USERAGENT => $opts['ua'] ?? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 StellioAudit/1.0',
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_HEADERFUNCTION => function ($ch, $hdrLine) use (&$respHeaders) {
+            if (strpos($hdrLine, ':') !== false) {
+                list($k, $v) = explode(':', $hdrLine, 2);
+                $respHeaders[strtolower(trim($k))] = trim($v);
+            }
+            return strlen($hdrLine);
+        },
     ]);
     if (!empty($opts['post'])) {
         curl_setopt($ch, CURLOPT_POST, true);
@@ -46,9 +54,10 @@ function fetch(string $url, array $opts = []): array {
     $err = curl_error($ch);
     $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     $totalTime = curl_getinfo($ch, CURLINFO_TOTAL_TIME);
+    $startTime = curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME);
     $size = curl_getinfo($ch, CURLINFO_SIZE_DOWNLOAD);
     curl_close($ch);
-    return ['body' => $body === false ? '' : $body, 'status' => (int)$status, 'error' => $err, 'finalUrl' => $finalUrl, 'time' => $totalTime, 'size' => $size];
+    return ['body' => $body === false ? '' : $body, 'status' => (int)$status, 'error' => $err, 'finalUrl' => $finalUrl, 'time' => $totalTime, 'startTime' => $startTime, 'size' => $size, 'headers' => $respHeaders];
 }
 
 /** Run multiple fetches in parallel */
@@ -86,6 +95,132 @@ function fetchParallel(array $requests): array {
     }
     curl_multi_close($mh);
     return $out;
+}
+
+// ---------- Audit plumbing: IP, cache, rate limit, subpage probe, running stats ----------
+function clientIp(): string {
+    foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $k) {
+        if (!empty($_SERVER[$k])) {
+            $ip = trim(explode(',', (string)$_SERVER[$k])[0]);
+            if ($ip !== '') return $ip;
+        }
+    }
+    return '0.0.0.0';
+}
+
+function auditCacheDir(): string {
+    $dir = __DIR__ . '/audit-cache';
+    if (!is_dir($dir)) @mkdir($dir, 0750, true);
+    return $dir;
+}
+
+function cache_get(string $key, int $ttl): ?array {
+    $file = auditCacheDir() . '/' . $key . '.json';
+    if (!is_file($file)) return null;
+    $fh = @fopen($file, 'r');
+    if (!$fh) return null;
+    flock($fh, LOCK_SH);
+    $data = @file_get_contents($file);
+    flock($fh, LOCK_UN);
+    fclose($fh);
+    $j = $data ? json_decode($data, true) : null;
+    if (!is_array($j) || !isset($j['t']) || !isset($j['v'])) return null;
+    if ((time() - (int)$j['t']) > $ttl) return null;
+    return $j['v'];
+}
+
+function cache_set(string $key, $value): void {
+    $file = auditCacheDir() . '/' . $key . '.json';
+    $fh = @fopen($file, 'c');
+    if (!$fh) return;
+    flock($fh, LOCK_EX);
+    ftruncate($fh, 0);
+    fwrite($fh, json_encode(['t' => time(), 'v' => $value]));
+    flock($fh, LOCK_UN);
+    fclose($fh);
+}
+
+/** Enforce per-IP and global caps on expensive actions. Returns an error string, or '' if allowed. */
+function rateLimitAction(string $bucket, int $perIpPerHour, int $globalPerHour): string {
+    $ip = clientIp();
+    $now = time();
+    $rp = sys_get_temp_dir() . '/stellio_' . $bucket . '_' . md5($ip);
+    $cur = is_file($rp) ? (array)json_decode((string)@file_get_contents($rp), true) : [];
+    $cur = array_values(array_filter($cur, fn($t) => ($now - $t) < 3600));
+    if (count($cur) >= $perIpPerHour) return 'You have reached your hourly audit limit. Please try again later.';
+    $cur[] = $now;
+    @file_put_contents($rp, json_encode($cur));
+    $rg = sys_get_temp_dir() . '/stellio_' . $bucket . '_global';
+    $g = is_file($rg) ? (array)json_decode((string)@file_get_contents($rg), true) : [];
+    $g = array_values(array_filter($g, fn($t) => ($now - $t) < 3600));
+    if (count($g) >= $globalPerHour) return 'The audit tool is busy right now. Please try again in a few minutes.';
+    $g[] = $now;
+    @file_put_contents($rg, json_encode($g));
+    return '';
+}
+
+/** Fetch a subpage and return a light on-page report for multi-page auditing. */
+function probeSubpage(string $url, ?array $r = null): array {
+    if ($r === null) $r = fetch($url, ['timeout' => 20]);
+    $status = $r['status'] ?? 0;
+    $body = $r['body'] ?? '';
+    $report = ['url' => $r['finalUrl'] ?: $url, 'status' => $status, 'status_label' => 'ok', 'issues' => [], 'title' => '', 'description' => '', 'h1' => 0, 'canonical' => '', 'words' => 0];
+    if ($status === 0 || $status >= 500) {
+        $report['status_label'] = 'unreachable';
+        $report['issues'][] = ['title' => 'Unreachable', 'impact' => 'critical'];
+        return $report;
+    }
+    if ($status >= 400) {
+        $report['status_label'] = 'error';
+        $report['issues'][] = ['title' => "HTTP $status", 'impact' => 'high'];
+    }
+    if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $body, $mt)) $report['title'] = trim(html_entity_decode($mt[1]));
+    if ($report['title'] === '') $report['issues'][] = ['title' => 'No page title', 'impact' => 'high'];
+    elseif (strlen($report['title']) > 70) $report['issues'][] = ['title' => 'Title too long (' . strlen($report['title']) . ' chars)', 'impact' => 'low'];
+    if (preg_match('/<meta\s+name=["\']description["\'][^>]*content=["\'](.*?)["\']/is', $body, $md)) $report['description'] = trim($md[1]);
+    if ($report['description'] === '') $report['issues'][] = ['title' => 'No meta description', 'impact' => 'medium'];
+    preg_match_all('/<h1[^>]*>(.*?)<\/h1>/is', $body, $mh);
+    $report['h1'] = count($mh[1] ?? []);
+    if ($report['h1'] !== 1) $report['issues'][] = ['title' => $report['h1'] . ' H1 tag(s)', 'impact' => 'medium'];
+    if (preg_match('/<link[^>]+rel=["\']canonical["\'][^>]*>/i', $body, $mc) && preg_match('/href=["\']([^"\']+)["\']/i', $mc[0], $mhref)) $report['canonical'] = $mhref[1];
+    if ($report['canonical'] === '') $report['issues'][] = ['title' => 'No canonical tag', 'impact' => 'medium'];
+    $report['words'] = str_word_count(strip_tags(preg_replace('/<script.*?<\/script>|<style.*?<\/style>/is', '', $body)));
+    return $report;
+}
+
+/** Update + read running audit averages (flock-guarded local stats file, no DB dependency). */
+function auditStats(array $scores): array {
+    $file = auditCacheDir() . '/stats.json';
+    $fh = @fopen($file, 'c+');
+    $stats = ['count' => 0, 'sum_overall' => 0, 'sum_onpage' => 0, 'sum_perf' => 0, 'sum_dns' => 0, 'sum_design' => 0];
+    if ($fh) {
+        flock($fh, LOCK_EX);
+        $raw = stream_get_contents($fh);
+        $existing = $raw ? json_decode($raw, true) : null;
+        if (is_array($existing)) $stats = array_merge($stats, $existing);
+    }
+    $stats['count'] = (int)($stats['count'] ?? 0) + 1;
+    $stats['sum_overall'] = (float)($stats['sum_overall'] ?? 0) + (float)($scores['overall'] ?? 0);
+    $stats['sum_onpage'] = (float)($stats['sum_onpage'] ?? 0) + (float)($scores['on_page'] ?? 0);
+    $stats['sum_perf'] = (float)($stats['sum_perf'] ?? 0) + (float)($scores['performance'] ?? 0);
+    $stats['sum_dns'] = (float)($stats['sum_dns'] ?? 0) + (float)($scores['dns_domain'] ?? 0);
+    $stats['sum_design'] = (float)($stats['sum_design'] ?? 0) + (float)($scores['design'] ?? 0);
+    if ($fh) {
+        ftruncate($fh, 0);
+        rewind($fh);
+        fwrite($fh, json_encode($stats));
+        flock($fh, LOCK_UN);
+        fclose($fh);
+    }
+    $c = max(1, (int)$stats['count']);
+    return [
+        'sample_size' => (int)$stats['count'],
+        'overall_avg' => (int)round($stats['sum_overall'] / $c),
+        'on_page_avg' => (int)round($stats['sum_onpage'] / $c),
+        'performance_avg' => (int)round($stats['sum_perf'] / $c),
+        'dns_domain_avg' => (int)round($stats['sum_dns'] / $c),
+        'design_avg' => (int)round($stats['sum_design'] / $c),
+    ];
 }
 
 function scoreFromChecks(array $checks): int {
@@ -315,7 +450,7 @@ if ($action === 'resend_pdf') {
     if (!preg_match('#^https?://#i', $url)) { http_response_code(400); echo json_encode(['error' => 'A full http(s) URL is required']); exit; }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { http_response_code(400); echo json_encode(['error' => 'A valid email is required']); exit; }
 
-    $audit = stellio_run_audit($url, $OPENAI_KEY, $GOOGLE_PSI_KEY, $SB_URL, $SB_ANON);
+    $audit = stellio_run_audit($url, $OPENAI_KEY, $GOOGLE_PSI_KEY, $SB_URL, $SB_ANON, $AI_MODEL);
     if (!($audit['ok'] ?? false)) { http_response_code(502); echo json_encode(['error' => $audit['error'] ?? 'Audit failed']); exit; }
 
     // Queue PDF job for the cron worker
@@ -363,7 +498,7 @@ if ($action === 'send_pdf') {
 if ($method !== 'POST') { http_response_code(405); echo json_encode(['error' => 'Method not allowed']); exit; }
 
 // ---------- DEFAULT action=audit ----------
-function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE_PSI_KEY, string $SB_URL = '', string $SB_ANON = ''): array {
+function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE_PSI_KEY, string $SB_URL = '', string $SB_ANON = '', string $AI_MODEL = 'gpt-4o-mini'): array {
     // ---------- Normalise + validate ----------
     if (!preg_match('#^https?://#i', $targetUrl)) $targetUrl = 'https://' . $targetUrl;
     $host = parse_url($targetUrl, PHP_URL_HOST);
@@ -476,14 +611,17 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     $wordCount = str_word_count(strip_tags(preg_replace('/<script.*?<\/script>|<style.*?<\/style>/is', '', $html)));
     $onPageChecks[] = finding('Content', 'Content depth', "$wordCount words of body copy on the homepage", $wordCount >= 300, 'medium', 'Aim for 300+ words on your homepage - thin pages rank poorly and convert worse.');
 
-    $lastModified = null;
-    foreach ($pageReq['page'] as $r) { /* placeholder */ }
-    $onPageChecks[] = finding('Content', 'Content freshness', $lastModified !== null ? "Last modified: $lastModified" : 'Last-modified header not exposed', true, 'low', 'Publish or update content regularly - fresh sites earn trust and rank better.');
+    $lastModified = $pageReq['page']['headers']['last-modified'] ?? '';
+    $contentAgeDays = null;
+    if ($lastModified !== '') { $lm_ts = strtotime($lastModified); if ($lm_ts) $contentAgeDays = (int)floor((time() - $lm_ts) / 86400); }
+    $freshOk = $contentAgeDays === null || $contentAgeDays <= 365;
+    $onPageChecks[] = finding('Content', 'Content freshness', $contentAgeDays === null ? 'No Last-Modified header (normal on cached/JS-built sites)' : "Last updated ~{$contentAgeDays} days ago", $freshOk, $contentAgeDays !== null && $contentAgeDays > 365 ? 'medium' : 'low', $contentAgeDays === null ? 'JS/SPA sites often omit this header - that is fine.' : 'Publish or update content regularly - fresh sites earn trust and rank better.');
 
     // ---------- NEW CHECKS: technical health ----------
     // Compression
-    $encodingOk = (bool)preg_match('/gzip|br|deflate/i', $pageReq['page']['body'] ?? '');
-    $onPageChecks[] = finding('Technical', 'Compression', $encodingOk ? 'Compressed transfer looks enabled' : 'Could not verify compression - HTML may transfer uncompressed', true, 'medium', 'Enable gzip or brotli compression - it can cut page weight by 70%.');
+    $respEnc = strtolower((string)($pageReq['page']['headers']['content-encoding'] ?? ''));
+    $encodingOk = $respEnc !== '' && in_array($respEnc, ['gzip', 'deflate', 'br', 'zstd', 'x-gzip'], true);
+    $onPageChecks[] = finding('Technical', 'Compression', $encodingOk ? "Compression enabled ({$respEnc})" : 'No Content-Encoding header - HTML may transfer uncompressed', $encodingOk, 'medium', 'Enable gzip or brotli compression - it can cut page weight by 70%.');
 
     // Lazy loading
     $lazyImgs = 0;
@@ -532,9 +670,49 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     $hasSitemap = ($pageReq['sitemap']['status'] ?? 0) === 200;
     $onPageChecks[] = finding('Crawlability', 'XML sitemap', $hasSitemap ? 'sitemap.xml found' : 'No sitemap.xml found', $hasSitemap, 'medium', 'Publish a sitemap.xml and reference it in robots.txt so Google indexes every page.');
 
+    // Canonical
+    preg_match_all('/<link[^>]+rel=["\']canonical["\'][^>]*>/i', $html, $cms);
+    $canonicalTags = array_values(array_filter($cms[0] ?? [], fn($t) => (bool)preg_match('/href=["\'][^"\']+["\']/i', $t)));
+    $canonicalUrl = '';
+    if ($canonicalTags && preg_match('/href=["\']([^"\']+)["\']/i', $canonicalTags[0], $chm)) $canonicalUrl = trim($chm[1]);
+    $canonicalOk = count($canonicalTags) === 1 && $canonicalUrl !== '' && !preg_match('/\s/', $canonicalUrl);
+    $onPageChecks[] = finding('On-Page', 'Canonical tag', count($canonicalTags) === 1 ? "Canonical set: $canonicalUrl" : (count($canonicalTags) > 1 ? count($canonicalTags) . ' canonical tags (conflicting signals)' : 'No canonical tag found'), $canonicalOk, 'high', 'Add one self-referencing canonical per URL to prevent duplicate-content penalties.');
+
+    // Security headers
+    $pgHeaders = $pageReq['page']['headers'] ?? [];
+    $secPresent = []; $secMissing = [];
+    $secSpec = ['strict-transport-security' => 'HSTS', 'x-content-type-options' => 'X-Content-Type-Options', 'x-frame-options' => 'X-Frame-Options', 'referrer-policy' => 'Referrer-Policy', 'content-security-policy' => 'Content-Security-Policy'];
+    foreach ($secSpec as $h => $label) { if (isset($pgHeaders[$h]) && $pgHeaders[$h] !== '') $secPresent[] = $label; else $secMissing[] = $label; }
+    $onPageChecks[] = finding('Security', 'Security headers', $secPresent ? 'Present: ' . implode(', ', $secPresent) . ($secMissing ? ' | Missing: ' . implode(', ', $secMissing) : '') : 'No hardening headers found', count($secPresent) >= 3, 'high', 'Send HSTS, X-Content-Type-Options, X-Frame-Options and Referrer-Policy for a hardened, trustworthy site.');
+
+    // Mixed content
+    $mixed = [];
+    if ($scheme === 'https' && preg_match_all('/(?:src|href)=["\'](http:\/\/[^"\']+)["\']/i', $html, $mxc)) $mixed = array_values(array_unique($mxc[1]));
+    $onPageChecks[] = finding('Security', 'Mixed content', $mixed ? count($mixed) . ' insecure (http://) resource(s)' : 'No insecure mixed content found', empty($mixed), 'high', 'Any http:// asset on an https page is blocked by browsers - serve everything over https.');
+
+    // HTTP -> HTTPS redirect
+    if ($scheme === 'https') {
+        $httpChk = fetch('http://' . $host . '/', ['timeout' => 12]);
+        $httpStatus = $httpChk['status'] ?? 0;
+        $finalIsHttps = stripos($httpChk['finalUrl'] ?? '', 'https://') === 0;
+        $locIsHttps = isset($httpChk['headers']['location']) && stripos($httpChk['headers']['location'], 'https://') === 0;
+        $redirectsToHttps = in_array($httpStatus, [301, 302, 307, 308]) && ($finalIsHttps || $locIsHttps);
+        $onPageChecks[] = finding('Security', 'HTTP to HTTPS redirect', $redirectsToHttps ? "http:// redirects to https (HTTP $httpStatus)" : "http:// returns HTTP $httpStatus without forcing https", $redirectsToHttps, 'medium', 'Force every visitor onto https with a 301 so nobody sees an insecure page.');
+    }
+
+    // Robots / sitemap content
+    $robotsBody = $pageReq['robots']['body'] ?? '';
+    $robotsDisallowsAll = (bool)preg_match('/^Disallow:\s*\/\s*$/mi', $robotsBody);
+    $robotsHasSitemap = (bool)preg_match('/^Sitemap:\s*\S+/mi', $robotsBody);
+    if ($hasRobots) $onPageChecks[] = finding('Crawlability', 'robots.txt content', $robotsDisallowsAll ? 'WARNING: robots.txt disallows ALL crawling' : ($robotsHasSitemap ? 'robots.txt healthy and references a sitemap' : 'robots.txt present but no Sitemap reference'), !$robotsDisallowsAll, $robotsDisallowsAll ? 'critical' : 'low', $robotsDisallowsAll ? 'Remove "Disallow: /" or search engines will not index you.' : 'Add a Sitemap: line to robots.txt so crawlers find your sitemap.');
+    $sitemapBody = $pageReq['sitemap']['body'] ?? '';
+    preg_match_all('/<loc>\s*([^<]+?)\s*<\/loc>/i', $sitemapBody, $sl);
+    $sitemapLocCount = count($sl[1] ?? []);
+    if ($hasSitemap) $onPageChecks[] = finding('Crawlability', 'sitemap content', $sitemapLocCount > 0 ? "sitemap.xml lists $sitemapLocCount URLs" : 'sitemap.xml returned but lists no URLs', $sitemapLocCount > 0, 'medium', 'Your sitemap should list every indexable URL.');
+
     // Page weight + speed
     $pageKb = round(($pageReq['page']['size'] ?? 0) / 1024);
-    $ttfbMs = (int)round(($pageReq['page']['time'] ?? 0) * 1000);
+    $ttfbMs = (int)round((($pageReq['page']['startTime'] ?? 0) > 0 ? $pageReq['page']['startTime'] : ($pageReq['page']['time'] ?? 0)) * 1000);
     $onPageChecks[] = finding('Performance', 'Page weight', "{$pageKb} KB of HTML", $pageKb <= 200, 'high', 'Keep initial HTML under 200 KB - trim inline scripts and unnecessary markup.');
     $onPageChecks[] = finding('Performance', 'Server response', $ttfbMs > 0 ? "First byte in {$ttfbMs}ms" : 'Could not measure', $ttfbMs > 0 && $ttfbMs < 800, 'high', 'Get the first byte under 800ms with caching and a CDN.');
 
@@ -628,9 +806,12 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     // ---------- 3. PERFORMANCE (PageSpeed Insights) ----------
     $psiData = null;
     $psiKeyParam = $GOOGLE_PSI_KEY ? "&key={$GOOGLE_PSI_KEY}" : '';
-    $psi = fetch("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=" . urlencode($targetUrl) . "&strategy=mobile&category=performance&category=accessibility&category=best-practices&category=seo{$psiKeyParam}", ['timeout' => 60]);
-    if ($psi['status'] === 200) {
-        $psiData = json_decode($psi['body'], true);
+    $psiCache = cache_get('psi_' . md5($targetUrl), 21600);
+    if ($psiCache !== null) {
+        $psiData = $psiCache;
+    } else {
+        $psi = fetch("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=" . urlencode($targetUrl) . "&strategy=mobile&category=performance&category=accessibility&category=best-practices&category=seo{$psiKeyParam}", ['timeout' => 60]);
+        if ($psi['status'] === 200) { $psiData = json_decode($psi['body'], true); cache_set('psi_' . md5($targetUrl), $psiData); }
     }
 
     $perfChecks = [];
@@ -687,6 +868,11 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     $aiDesign = null;
     $screenshotUrl = null;
 
+    // Cached design critique - skip repeat microlink + vision cost on re-audits
+    $designCache = cache_get('design_' . md5($targetUrl), 21600);
+    if ($designCache !== null) {
+        $aiDesign = $designCache;
+    } else {
     // Get screenshot via microlink (free tier, no key)
     $micro = fetch("https://api.microlink.io/?url=" . urlencode($targetUrl) . "&screenshot=true&meta=false&screenshot.viewport.width=1280&screenshot.viewport.height=800", ['timeout' => 45]);
     if ($micro['status'] === 200) {
@@ -733,8 +919,76 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
             }
         }
     }
+    if ($aiDesign !== null) cache_set('design_' . md5($targetUrl), $aiDesign);
+    }
 
     $designScore = $aiDesign['design_score'] ?? null;
+
+    // ---------- 5. MULTI-PAGE SCAN (sitemap) + BROKEN LINKS ----------
+    $subpages = [];
+    $agg = ['title_ok' => 0, 'desc_ok' => 0, 'h1_bad' => [], 'broken' => []];
+    if ($sitemapLocCount > 0) {
+        $seenU = []; $cands = [];
+        foreach ($sl[1] as $u) {
+            $u = trim($u);
+            if ($u === '') continue;
+            $uh = strtolower((string)parse_url($u, PHP_URL_HOST));
+            if ($uh !== '' && $uh !== strtolower($host)) continue;
+            $path = (string)parse_url($u, PHP_URL_PATH);
+            if ($path === '/' || $path === '') continue;
+            $key = preg_replace('/[?#].*$/', '', $u);
+            if (isset($seenU[$key])) continue;
+            $seenU[$key] = true;
+            $cands[] = $u;
+            if (count($cands) >= 4) break;
+        }
+        if ($cands) {
+            $cidx = array_keys($cands);
+            $subReq = fetchParallel(array_combine($cidx, array_map(fn($u) => ['url' => $u, 'timeout' => 20], $cands)));
+            foreach ($cands as $i => $u) {
+                $sub = probeSubpage($u, $subReq[$i] ?? null);
+                $subpages[] = $sub;
+                if (in_array($sub['status_label'], ['error', 'unreachable'])) $agg['broken'][] = $u;
+                if ($sub['title'] !== '') $agg['title_ok']++; else $agg['title_bad_'][] = $u;
+                if ($sub['description'] !== '') $agg['desc_ok']++; else $agg['desc_bad_'][] = $u;
+                if ($sub['h1'] !== 1) $agg['h1_bad'][] = $u;
+            }
+        }
+    }
+    $scannedCount = count($subpages);
+    if ($scannedCount > 0) {
+        $metaCoverage = (int)round((($agg['title_ok'] + $agg['desc_ok']) / ($scannedCount * 2)) * 100);
+        $onPageChecks[] = finding('On-Page', 'Subpage SEO coverage', "Scanned $scannedCount sitemap subpages (title/meta coverage ~{$metaCoverage}%)", $metaCoverage >= 80, 'medium', 'Every subpage needs a unique title and meta description, not just the homepage.');
+        if (!empty($agg['broken'])) $onPageChecks[] = finding('Crawlability', 'Broken subpages', count($agg['broken']) . ' of ' . $scannedCount . ' subpages failed to load', false, 'high', 'Fix these URLs or remove them from your sitemap - dead pages hurt rankings.');
+    }
+
+    // Broken internal links (sample up to 8 same-host links from the homepage)
+    $internalHrefs = [];
+    if (preg_match_all('/href=["\']([^"\']+)["\']/i', $html, $hrefs)) {
+        $seenHref = [];
+        foreach ($hrefs[1] as $h) {
+            $h = trim($h);
+            if ($h === '' || $h[0] === '#' || preg_match('~^(mailto:|tel:|javascript:|data:)~i', $h)) continue;
+            if (!preg_match('~^(https?://|/)~i', $h)) continue;
+            $abs = ($h[0] === '/') ? $scheme . '://' . $host . $h : $h;
+            if (strtolower((string)parse_url($abs, PHP_URL_HOST)) !== strtolower($host)) continue;
+            $abs = preg_replace('/[?#].*$/', '', $abs);
+            if (rtrim($abs, '/') === rtrim($targetUrl, '/')) continue;
+            if (isset($seenHref[$abs]) || count($internalHrefs) >= 8) continue;
+            $seenHref[$abs] = true;
+            $internalHrefs[] = $abs;
+        }
+    }
+    $brokenLinks = [];
+    if ($internalHrefs) {
+        $lidx = array_keys($internalHrefs);
+        $lres = fetchParallel(array_combine($lidx, array_map(fn($u) => ['url' => $u, 'timeout' => 15], $internalHrefs)));
+        foreach ($internalHrefs as $i => $u) { $st = $lres[$i]['status'] ?? 0; if ($st >= 400) $brokenLinks[] = ['url' => $u, 'status' => $st]; }
+    }
+    if ($brokenLinks) $onPageChecks[] = finding('Crawlability', 'Broken internal links', count($brokenLinks) . ' broken internal link(s) e.g. ' . $brokenLinks[0]['url'], false, 'high', 'Fix or remove broken internal links - they waste crawl budget and frustrate visitors.');
+
+    // Recompute the on-page score now that the new checks are included
+    $onPageScore = scoreFromChecks($onPageChecks);
 
     // ---------- COMPOSITE SCORE ----------
     // Weighted: on-page 30%, performance 30%, DNS/domain 15%, AI design 25%
@@ -747,6 +1001,15 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     $composite = 0;
     foreach ($compositeParts as $p) $composite += $p['score'] * $p['weight'];
     $overallScore = (int)round($composite);
+
+    // Benchmark vs running averages of every audit we've run (local, flock-guarded)
+    $benchmark = auditStats([
+        'overall' => $overallScore,
+        'on_page' => $onPageScore,
+        'performance' => $perfScore,
+        'dns_domain' => $dnsScore,
+        'design' => $designScore ?? 70,
+    ]);
 
     // ---------- OPPORTUNITIES (sorted by impact) ----------
     $allChecks = array_merge($onPageChecks, $dnsChecks, $perfChecks);
@@ -788,6 +1051,8 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
         'page' => ['html_kb' => $pageKb, 'ttfb_ms' => $ttfbMs, 'status' => $pageStatus],
         'ai_design' => $aiDesign,
         'screenshot_url' => $screenshotUrl,
+        'subpages' => $subpages,
+        'benchmark' => $benchmark,
         'checks' => $allChecks,
         'opportunities' => array_slice($opportunities, 0, 25),
         'opportunity_count' => count($opportunities),
@@ -814,7 +1079,9 @@ if ($action === 'audit') {
     if ($method !== 'POST') { http_response_code(405); echo json_encode(['error' => 'Method not allowed']); exit; }
     $targetUrl = trim($input['url'] ?? '');
     if (!$targetUrl) { http_response_code(400); echo json_encode(['error' => 'Missing url']); exit; }
-    $result = stellio_run_audit($targetUrl, $OPENAI_KEY, $GOOGLE_PSI_KEY, $SB_URL, $SB_ANON);
+    $rl = rateLimitAction('audit', 4, 40);
+    if ($rl) { http_response_code(429); echo json_encode(['error' => $rl]); exit; }
+    $result = stellio_run_audit($targetUrl, $OPENAI_KEY, $GOOGLE_PSI_KEY, $SB_URL, $SB_ANON, $AI_MODEL);
     if (!$result['ok']) { http_response_code(502); echo json_encode(['error' => $result['error']]); exit; }
     echo json_encode($result['data'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;

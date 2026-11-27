@@ -56,6 +56,39 @@ function stellio_audit_html(array $audit, string $fontsCss): string {
             . '</div>';
     }
 
+    // ---- Benchmark vs the running average of audits we've run ----
+    $bench = $audit['benchmark'] ?? null;
+    $benchHtml = '';
+    if ($bench && (int)($bench['sample_size'] ?? 0) >= 2) {
+        $bRows = [
+            ['Overall', $overall, $bench['overall_avg']],
+            ['On-Page', $s['on_page'] ?? null, $bench['on_page_avg']],
+            ['Performance', $s['performance'] ?? null, $bench['performance_avg']],
+            ['DNS & Domain', $s['dns_domain'] ?? null, $bench['dns_domain_avg']],
+            ['AI Design', $s['design'] ?? null, $bench['design_avg']],
+        ];
+        $bCells = '';
+        foreach ($bRows as $br) {
+            if ($br[1] === null) continue;
+            $mineI = (int)$br[1]; $avgI = (int)$br[2];
+            $dlt = $mineI - $avgI;
+            $dCol = $dlt >= 0 ? '#2E7D32' : '#C62828';
+            $dTxt = $dlt > 0 ? '+' . $dlt : (string)$dlt;
+            $bCells .= '<div style="border:1px solid #F2E3BC;border-radius:14px;padding:12px 14px;background:#FFFCF3;display:flex;flex-direction:column;gap:4px">'
+                . '<span style="font-family:\'Geist Mono\',monospace;font-weight:600;font-size:9px;letter-spacing:.1em;color:#8C8578;white-space:nowrap">' . htmlspecialchars($br[0]) . '</span>'
+                . '<div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:22px;font-weight:500;line-height:1;color:#0D0D0D">' . $mineI . '</span>'
+                . '<span style="font-size:11px;font-weight:600;color:' . $dCol . '">' . $dTxt . '</span></div>'
+                . '<span style="font-size:9.5px;color:#8C8578">typical ' . $avgI . '</span>'
+                . '</div>';
+        }
+        if ($bCells !== '') {
+            $benchHtml = '<div style="display:flex;flex-direction:column;gap:10px;border-top:1px solid #F2E3BC;padding-top:18px">'
+                . '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-family:\'Geist Mono\',monospace;font-weight:600;font-size:10px;letter-spacing:.14em;color:#5C574E">HOW YOU COMPARE</span>'
+                . '<span style="font-size:11px;color:#8C8578">vs the last ' . (int)$bench['sample_size'] . ' audits we have run</span></div>'
+                . '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' . $bCells . '</div></div>';
+        }
+    }
+
     // ---- Design recommendations ----
     $recsHtml = '';
     if ($recs) {
@@ -155,6 +188,9 @@ function stellio_audit_html(array $audit, string $fontsCss): string {
 
         // score cards
         . '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">' . $cardsHtml . '</div>'
+
+        // benchmark strip
+        . $benchHtml
 
         // AI design section
         . $designSection

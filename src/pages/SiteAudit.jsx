@@ -77,6 +77,52 @@ function CategoryScore({ label, score }) {
   )
 }
 
+function BenchmarkRow({ label, mine, avg }) {
+  const delta = mine - avg
+  const pos = delta >= 0
+  return (
+    <div className="bg-[#0E0E0E] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-[0.8rem] font-600 text-[#FAFAFA] truncate">{label}</p>
+        <p className="text-[0.68rem] text-[#71717A]">typical score {avg}/100</p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="font-[Satoshi] text-[1rem] font-700 text-[#FAFAFA]">{mine}</span>
+        <span className={`text-[0.72rem] font-700 ${pos ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+          {pos ? `+${delta}` : delta}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function BenchmarkPanel({ b, scores, overall }) {
+  if (!b || (b.sample_size || 0) < 2) return null
+  const rows = [
+    ['Overall', overall, b.overall_avg],
+    ['On-Page & SEO', scores?.on_page, b.on_page_avg],
+    ['Performance', scores?.performance, b.performance_avg],
+    ['DNS & Domain', scores?.dns_domain, b.dns_domain_avg],
+    ['AI Design', scores?.design, b.design_avg],
+  ].filter(r => r[1] !== null && r[1] !== undefined)
+  return (
+    <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 mb-8">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FB5005" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3-3 2 2 4-5"/></svg>
+        </div>
+        <div>
+          <h3 className="text-[1.05rem] font-700 text-[#FAFAFA]">How you compare</h3>
+          <p className="text-[0.72rem] text-[#71717A]">Your score vs the average of the last {b.sample_size} audits we've run</p>
+        </div>
+      </div>
+      <div className="grid sm:grid-cols-2 gap-3">
+        {rows.map(r => <BenchmarkRow key={r[0]} label={r[0]} mine={r[1]} avg={r[2]} />)}
+      </div>
+    </div>
+  )
+}
+
 const impactStyle = {
   critical: 'text-red-400 bg-red-400/10 border-red-400/20',
   high: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
@@ -503,6 +549,9 @@ export default function SiteAudit() {
                      'This site is leaving money on the table. The list below is your roadmap.'}
                   </p>
                   <p className="text-[0.85rem] text-[#71717A]">{result.opportunity_count} opportunities found</p>
+                  {result.subpages?.length ? (
+                    <p className="text-[0.72rem] text-[#71717A] mt-1">Also scanned {result.subpages.length} subpage{result.subpages.length === 1 ? '' : 's'} from your sitemap</p>
+                  ) : null}
                 </div>
               </div>
 
@@ -517,6 +566,9 @@ export default function SiteAudit() {
                   <CategoryScore key={label} label={label} score={score} />
                 ))}
               </div>
+
+              {/* Benchmark vs typical local business */}
+              <BenchmarkPanel b={result.benchmark} scores={result.scores} overall={result.overall_score} />
 
               {/* AI Design panel */}
               <div className="mb-8">
