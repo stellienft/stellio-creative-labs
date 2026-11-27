@@ -649,9 +649,9 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
     $hasAnalytics = (bool)preg_match('/(gtag\(|googletagmanager|plausible|matomo|umami|posthog|segment\.com|clarity\.ms)/i', $html);
     $onPageChecks[] = finding('Analytics', 'Analytics tracking', $hasAnalytics ? 'Analytics detected (GA4, GTM, Plausible, Matomo or similar)' : 'No analytics found - you are flying blind', $hasAnalytics, 'medium', 'Install analytics (GA4 or Plausible) - you cannot improve what you do not measure.');
 
-    // Live chat
-    $hasChat = (bool)preg_match('/(intercom|crisp\.chat|tawk\.to|drift\.com|livechat|zendesk|hubspot.*conversations|tawk)/i', $html);
-    $onPageChecks[] = finding('Conversion', 'Live chat or messaging', $hasChat ? 'Live chat widget detected' : 'No live chat or messaging widget found', $hasChat, 'low', 'Add live chat or a messaging link (WhatsApp, Messenger) - some visitors will never fill in a form.');
+    // Live chat is deliberately NOT a scored check. It is optional advice that
+    // only makes sense for sites with real traffic, and is surfaced as a
+    // score-neutral suggestion at the end of the report (see SUGGESTIONS).
 
     // Cookie consent
     $hasConsent = (bool)preg_match('/(cookiebot|osano|cookieconsent|iubenda|onetrust|termly|cookie consent|cookie-consent)/i', $html);
@@ -1044,6 +1044,25 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
         usort($opportunities, fn($a, $b) => ($impactOrder[$a['impact']] ?? 4) <=> ($impactOrder[$b['impact']] ?? 4));
     }
 
+    // ---------- SUGGESTIONS (score-neutral, optional advice, NOT findings) ----------
+    $suggestions = [];
+    // Live chat is always offered as an OPTIONAL suggestion (never a scored
+    // problem). CrUX field data is unreliable in keyless PSI, so we don't gate
+    // on it - but when real Chrome-traffic evidence IS present we escalate the
+    // wording from "when your traffic grows" to "add now".
+    $cruxPresent = !empty($cruxMetrics)
+        || !empty(($psiData['originLoadingExperience']['metrics'] ?? []));
+    $suggestions[] = [
+        'title' => $cruxPresent
+            ? 'Consider adding live chat for your active visitors'
+            : 'Consider live chat once your traffic grows',
+        'detail' => $cruxPresent
+            ? 'Your site has real Chrome traffic (CrUX field data present), so enquiries are coming in. A lightweight chat (WhatsApp, Messenger, Crisp or Tawk.to) lets visitors get answers instantly instead of abandoning a form. Optional - only add it if you have someone to respond.'
+            : 'Live chat is worth adding if and when enquiries pick up - a lightweight widget (WhatsApp, Messenger, Crisp or Tawk.to) lets visitors get answers on the fly instead of abandoning a form. Optional - defer until the site is getting steady traffic.',
+        'impact' => 'info',
+        'optional' => true,
+    ];
+
     // ---------- OUTPUT ----------
     $response = [
         'url' => $auditedUrl,
@@ -1065,6 +1084,7 @@ function stellio_run_audit(string $targetUrl, string $OPENAI_KEY, string $GOOGLE
         'screenshot_url' => $screenshotUrl,
         'subpages' => $subpages,
         'benchmark' => $benchmark,
+        'suggestions' => $suggestions,
         'checks' => $allChecks,
         'opportunities' => array_slice($opportunities, 0, 25),
         'opportunity_count' => count($opportunities),

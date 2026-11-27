@@ -128,6 +128,7 @@ const impactStyle = {
   high: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
   medium: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
   low: 'text-[#A1A1AA] bg-white/[0.04] border-white/[0.08]',
+  info: 'text-sky-400 bg-sky-400/10 border-sky-400/20',
 }
 
 function OpportunityCard({ opp, i }) {
@@ -586,6 +587,30 @@ export default function SiteAudit() {
                   ))}
                 </div>
               </div>
+
+              {/* Optional suggestions - score neutral, not problems */}
+              {result.suggestions?.length > 0 && (
+                <div className="mb-10">
+                  <h3 className="font-[Satoshi] text-[1.1rem] font-700 mb-1 flex items-center gap-2">
+                    Optional suggestions
+                    <span className="text-[0.58rem] font-600 uppercase tracking-wider text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded-md">
+                      not scored
+                    </span>
+                  </h3>
+                  <p className="text-[0.78rem] text-[#71717A] mb-4">Worth considering once your site earns enough traffic — not a problem to fix.</p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {result.suggestions.map((s, i) => (
+                      <div key={i} className="bg-[#111111] border border-sky-400/15 rounded-2xl p-4 flex flex-col">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className={`text-[0.58rem] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-md border shrink-0 ${impactStyle.info}`}>{s.impact}</span>
+                          <h4 className="text-[0.88rem] font-600 text-[#FAFAFA] leading-snug">{s.title}</h4>
+                        </div>
+                        <p className="text-[0.78rem] text-[#A1A1AA] leading-relaxed">{s.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* PDF download - email gated */}
               <div className="bg-[#0E0E0E] border border-[#FB5005]/20 rounded-3xl p-8 text-center mb-10 relative overflow-hidden">
